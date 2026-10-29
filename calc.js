@@ -122,17 +122,23 @@ function latestOnly(rows) {
 }
 
 // ---------- Main statistics ----------
+// Mid + CT + Attendance entered so far for a course whose Final is not out yet (max 50).
+export function marksSoFar(c) {
+  return (Number(c.mid) || 0) + (Number(c.ct) || 0) + (Number(c.attendance) || 0);
+}
+
 export function computeStats(courses, requiredCredits = DEFAULT_REQUIRED_CREDITS) {
   const groups = groupBySemester(courses);
 
   const rowsBySem = groups.map((g) =>
-    g.courses.map((c) => ({ ...c, credit: creditOf(c), retaken: false, isRetake: false, attempt: 1 }))
+    g.courses.map((c) => ({ ...c, credit: creditOf(c), retaken: false, isRetake: false, attempt: 1, ongoing: !!c.ongoing }))
   );
 
   // Retake detection: same course code attempted more than once.
   const lastByCode = new Map();
   rowsBySem.forEach((rows) =>
     rows.forEach((r) => {
+      if (r.ongoing) return;
       const code = codeKey(r.courseCode);
       if (!code) return;
       const prev = lastByCode.get(code);
@@ -148,14 +154,19 @@ export function computeStats(courses, requiredCredits = DEFAULT_REQUIRED_CREDITS
   const upTo = []; // all rows up to and including the current semester
   const semesters = groups.map((g, i) => {
     const rows = rowsBySem[i];
-    upTo.push(...rows);
-    const own = tally(rows);
+    const counted = rows.filter((r) => !r.ongoing);
+    const ongoingRows = rows.filter((r) => r.ongoing);
+    upTo.push(...counted);
+    const own = tally(counted);
     const all = tally(upTo);
     const latest = tally(latestOnly(upTo));
     return {
       name: g.name,
       number: i + 1,
       rows,
+      ongoingCount: ongoingRows.length,
+      ongoingCredits: ongoingRows.reduce((a, r) => a + r.credit, 0),
+      inProgress: !counted.length && ongoingRows.length > 0, // only ongoing courses so far: no GPA yet
       credits: own.credits,
       points: own.points,
       completed: own.completed,
@@ -172,16 +183,23 @@ export function computeStats(courses, requiredCredits = DEFAULT_REQUIRED_CREDITS
   });
 
   const flat = rowsBySem.flat();
-  const all = tally(flat);
-  const latest = tally(latestOnly(flat));
+  const done = flat.filter((r) => !r.ongoing); // ongoing courses have no result yet: they are not counted anywhere
+  const ongoing = flat.filter((r) => r.ongoing);
+  const ongoingCodes = new Set(ongoing.map((r) => codeKey(r.courseCode)).filter(Boolean));
+  const all = tally(done);
+  const latest = tally(latestOnly(done));
 
-  const pendingRetakes = flat.filter((r) => !isPassed(r.grade) && !r.retaken);
+  // A failed course that is being retaken right now is not "pending" any more.
+  const pendingRetakes = done.filter((r) => !isPassed(r.grade) && !r.retaken && !ongoingCodes.has(codeKey(r.courseCode)));
   // Passed but weak (D): worth improving, only if not already retaken.
-  const improvable = flat.filter((r) => isPassed(r.grade) && Number(r.gpa) <= 2 && !r.retaken);
+  const improvable = done.filter((r) => isPassed(r.grade) && Number(r.gpa) <= 2 && !r.retaken && !ongoingCodes.has(codeKey(r.courseCode)));
 
   return {
     semesters,
     courseCount: courses.length,
+    countedCount: done.length,
+    ongoingCount: ongoing.length,
+    ongoingCredits: ongoing.reduce((a, r) => a + r.credit, 0),
     totalCredits: all.cumCredits,
     totalPoints: all.points,
     completedCredits: all.completed,
@@ -276,3 +294,21 @@ export function neededFinal(mid, ct, attendance) {
     }),
   };
 }
+
+// ---------- Ongoing courses: "what if" ----------
+// picks = { [courseId]: "A-" ... } the grade you expect in each ongoing course (default B+).
+// Returns the CGPA you would have if the ongoing courses ended with those grades, plus the GPA of just those courses.
+export const DEFAULT_EXPECTED_GRADE = "B+";
+
+export function projectWithGrades(courses, picks, mode, requiredCredits = DEFAULT_REQUIRED_CREDITS) {
+  const gradeOf = (c) => (gradeToGpa((picks || {})[c.id]) === null ? DEFAULT_EXPECTED_GRADE : (picks || {})[c.id]);
+  const sim = courses.map((c) =>
+    c.ongoing ? { ...c, ongoing: false, grade: gradeOf(c), gpa: gradeToGpa(gradeOf(c)) } : c
+  );
+  const stats = computeStats(sim, requiredCredits);
+  const ong = courses.filter((c) => c.ongoing);
+  const credits = ong.reduce((a, c) => a + creditOf(c), 0);
+  const points = ong.reduce((a, c) => a + creditOf(c) * gradeToGpa(gradeOf(c)), 0);
+  return { stats, cgpa: cgpaOf(stats, mode), semesterGpa: credits ? points / credits : 0, credits };
+}
+

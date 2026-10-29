@@ -101,7 +101,12 @@
               <input type="number" id="credit" min="0.5" max="12" step="0.5" value="3" required>
             </label>
 
-            <div class="entry-switch f-full" role="radiogroup" aria-label="How do you want to enter the result?">
+            <label class="ongoing-toggle f-full">
+              <input type="checkbox" id="ongoingBox">
+              <span>⏳ <b>Ongoing course</b> — result not published yet <small>(kept as a note, not counted in CGPA)</small></span>
+            </label>
+
+            <div class="entry-switch f-full" id="entrySwitch" role="radiogroup" aria-label="How do you want to enter the result?">
               <label><input type="radio" name="entry" value="marks" checked> Enter marks</label>
               <label><input type="radio" name="entry" value="grade"> I only know the grade</label>
             </div>
@@ -110,7 +115,7 @@
               <label class="f">Mid <small>/30</small><input type="number" id="mid" min="0" max="30" step="any" placeholder="0"></label>
               <label class="f">CT <small>/10</small><input type="number" id="ct" min="0" max="10" step="any" placeholder="0"></label>
               <label class="f">Attendance <small>/10</small><input type="number" id="attendance" min="0" max="10" step="any" placeholder="0"></label>
-              <label class="f">Final <small>/50</small><input type="number" id="final" min="0" max="50" step="any" placeholder="0"></label>
+              <label class="f" id="finalField">Final <small>/50</small><input type="number" id="final" min="0" max="50" step="any" placeholder="0"></label>
             </div>
             <label id="gradeField" class="f" hidden>Grade
               <select id="gradeSelect"></select>
@@ -152,6 +157,14 @@
           <div id="chartTable" class="chart-table" hidden></div>
         </div>
 
+        <div class="card" id="forecastCard" hidden>
+          <h2>⏳ Ongoing courses forecast</h2>
+          <p class="hint">Your running semester is not counted yet. Pick the grade you expect in each course to see what your GPA and CGPA would become.</p>
+          <label class="inline-select">Expect <select id="forecastAll"></select> in all courses</label>
+          <div id="forecastList"></div>
+          <div id="forecastResult" class="result-box"></div>
+        </div>
+
         <div class="grid-2">
           <div class="card">
             <h2>🎯 Target CGPA</h2>
@@ -189,8 +202,8 @@
       <!-- IMPORT & EXPORT -->
       <section id="tab-data" class="panel" hidden>
         <div class="card" id="importCard">
-          <h2>📥 Import from your university result page</h2>
-          <p class="hint">Open your university “Result View” page, select all (<kbd>Ctrl</kbd>+<kbd>A</kbd>), copy (<kbd>Ctrl</kbd>+<kbd>C</kbd>) and paste below. Your data goes only to your own private account.</p>
+          <h2>📥 Import from your university pages</h2>
+          <p class="hint">Open your university <b>“Result View”</b> page (finished semesters) or <b>“Course Status”</b> page (your running semester → saved as ongoing courses), select all (<kbd>Ctrl</kbd>+<kbd>A</kbd>), copy (<kbd>Ctrl</kbd>+<kbd>C</kbd>) and paste below. Your data goes only to your own private account.</p>
           <textarea id="importText" rows="6" placeholder="Paste the result text here…"></textarea>
           <div class="row-actions">
             <button type="button" id="importParse" class="primary">Read result</button>

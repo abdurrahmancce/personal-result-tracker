@@ -58,6 +58,9 @@ const f3 = (n) => (Math.round((Number(n) || 0) * 1000) / 1000).toFixed(3);
 const f2 = (n) => (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
 const num = (v) => (Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100));
 const hasMarks = (r) => r.total !== undefined && r.total !== null && r.total !== "";
+const hasPartial = (r) => [r.mid, r.ct, r.attendance].some((v) => v !== undefined && v !== null && v !== "");
+const hasAnyMarks = (r) => hasMarks(r) || (!!r.ongoing && hasPartial(r));
+const markCell = (v) => (v === undefined || v === null || v === "" ? "–" : num(v));
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const gradeClass = (g) => "grade-" + String(g).replace("+", "plus").replace("-", "minus");
 const withTimeout = (p, ms, msg) =>
@@ -99,6 +102,8 @@ const state = {
   pendingCourses: false,
   collapsed: new Set(),
   targetTouched: false,
+  forecastPicks: {},      // ongoing course id -> expected grade
+  forecastAll: C.DEFAULT_EXPECTED_GRADE,
   parsedImport: null,
   share: null, // data of the opened share (read-only view)
 };
@@ -457,10 +462,11 @@ function renderSummary() {
 
   if (document.activeElement && document.activeElement.id === "reqCredits") return; // don't steal focus while typing
   const pct = clamp((st.completedCredits / st.requiredCredits) * 100, 0, 100);
+  const graded = st.semesters.filter((s) => !s.inProgress); // a semester with only ongoing courses has no GPA yet
   let best = null;
-  st.semesters.forEach((s) => { if (!best || s.gpa > best.gpa) best = s; });
-  const lastSem = st.semesters[st.semesters.length - 1];
-  const prevSem = st.semesters[st.semesters.length - 2];
+  graded.forEach((s) => { if (!best || s.gpa > best.gpa) best = s; });
+  const lastSem = graded[graded.length - 1];
+  const prevSem = graded[graded.length - 2];
   const delta = lastSem && prevSem ? lastSem.gpa - prevSem.gpa : null;
   const reqCtl = state.readOnly
     ? `<span class="value">${num(st.requiredCredits)}</span>`
@@ -478,7 +484,7 @@ function renderSummary() {
     <div class="stat"><div class="label">Latest semester GPA</div><div class="value">${lastSem ? f3(lastSem.gpa) : "–"}</div>
       <div class="sub">${lastSem ? esc(lastSem.name) : "no data"}${delta !== null ? ` · ${delta >= 0 ? "▲" : "▼"} ${f3(Math.abs(delta))}` : ""}</div></div>
     <div class="stat"><div class="label">Best semester</div><div class="value">${best ? f3(best.gpa) : "–"}</div><div class="sub">${best ? esc(best.name) : ""}</div></div>
-    <div class="stat"><div class="label">To retake</div><div class="value">${st.pendingRetakes.length}</div><div class="sub">F / Y not retaken yet</div></div>`;
+    <div class="stat"><div class="label">To retake</div><div class="value">${st.pendingRetakes.length}</div><div class="sub">F / Y not retaken yet</div></div>${st.ongoingCount ? `<div class="stat"><div class="label">⏳ Ongoing</div><div class="value">${st.ongoingCount}</div><div class="sub">${num(st.ongoingCredits)} credits · not in CGPA</div></div>` : ""}`;
 
   const req = $("reqCredits");
   if (req) req.addEventListener("change", () => {
@@ -513,26 +519,30 @@ function renderSemesters() {
     host.innerHTML = `<div class="card empty">${state.readOnly ? "Nothing to show yet." : "No courses yet. Add one above, or import your whole result from the “Import &amp; Export” tab."}</div>`;
     return;
   }
-  const showMarks = st.semesters.some((s) => s.rows.some(hasMarks));
+  const showMarks = st.semesters.some((s) => s.rows.some(hasAnyMarks));
   const ro = state.readOnly;
   const html = st.semesters.map((sem) => {
     const rows = sortRows(sem.rows.filter((r) => rowMatches(r, q)));
     if (q && !rows.length) return "";
     const collapsed = state.collapsed.has(sem.name);
     const body = rows.map((r) => {
-      const m = hasMarks(r);
+      const ong = !!r.ongoing;
+      const pm = hasAnyMarks(r);
       const badges =
         (r.isRetake ? `<span class="badge retake">Retake #${r.attempt}</span>` : "") +
         (r.retaken && state.mode === "latest" ? `<span class="badge replaced">replaced</span>` : "");
       const dim = r.retaken && state.mode === "latest" ? " replaced" : "";
-      return `<tr class="${gradeClass(r.grade)}${dim}" data-id="${esc(r.id)}">
+      const marksCells = ong
+        ? `<td data-label="Mid">${markCell(r.mid)}</td><td data-label="CT">${markCell(r.ct)}</td><td data-label="Attendance">${markCell(r.attendance)}</td><td data-label="Final">–</td><td data-label="So far">${pm ? `${num(C.marksSoFar(r))}<small>/50</small>` : "–"}</td>`
+        : `<td data-label="Mid">${pm ? num(r.mid) : "–"}</td><td data-label="CT">${pm ? num(r.ct) : "–"}</td><td data-label="Attendance">${pm ? num(r.attendance) : "–"}</td><td data-label="Final">${pm ? num(r.final) : "–"}</td><td data-label="Total">${pm ? num(r.total) : "–"}</td>`;
+      return `<tr class="${ong ? "ongoing-row" : gradeClass(r.grade)}${dim}" data-id="${esc(r.id)}">
         <td class="left" data-label="Code">${esc(r.courseCode)}</td>
         <td class="left title-cell" data-label="Title">${esc(r.courseTitle) || "–"}${badges}${r.comment ? `<small>${esc(r.comment)}</small>` : ""}</td>
         <td data-label="Credit">${num(r.credit)}</td>
-        ${showMarks ? `<td data-label="Mid">${m ? num(r.mid) : "–"}</td><td data-label="CT">${m ? num(r.ct) : "–"}</td><td data-label="Attendance">${m ? num(r.attendance) : "–"}</td><td data-label="Final">${m ? num(r.final) : "–"}</td><td data-label="Total">${m ? num(r.total) : "–"}</td>` : ""}
-        <td data-label="Grade"><b>${esc(r.grade)}</b></td>
-        <td data-label="Point">${f2(r.gpa)}</td>
-        ${ro ? "" : `<td class="actions"><button class="edit" data-act="edit">Edit</button> <button class="delete" data-act="delete">Delete</button></td>`}
+        ${showMarks ? marksCells : ""}
+        <td data-label="Grade">${ong ? `<span class="badge ongoing">⏳ Ongoing</span>` : `<b>${esc(r.grade)}</b>`}</td>
+        <td data-label="Point">${ong ? "–" : f2(r.gpa)}</td>
+        ${ro ? "" : `<td class="actions">${ong ? `<button class="result" data-act="publish">Enter result</button> ` : ""}<button class="edit" data-act="edit">Edit</button> <button class="delete" data-act="delete">Delete</button></td>`}
       </tr>`;
     }).join("");
     return `<section class="card sem${collapsed ? " collapsed" : ""}" data-sem="${esc(sem.name)}">
@@ -540,11 +550,13 @@ function renderSemesters() {
         <span class="caret">▾</span>
         <span class="sem-name">${esc(sem.name)}</span>
         <span class="chips">
-          <span class="chip">GPA <b>${f3(sem.gpa)}</b></span>
+          ${sem.inProgress
+            ? `<span class="chip ongoing">⏳ Ongoing · ${num(sem.ongoingCredits)} credits · not in CGPA</span>`
+            : `<span class="chip">GPA <b>${f3(sem.gpa)}</b></span>
           <span class="chip">${num(sem.credits)} credits</span>
-          <span class="chip">CGPA <b>${f3(C.semesterCgpa(sem, state.mode))}</b></span>
+          <span class="chip">CGPA <b>${f3(C.semesterCgpa(sem, state.mode))}</b></span>${sem.ongoingCount ? `<span class="chip ongoing">+${sem.ongoingCount} ongoing</span>` : ""}`}
         </span>
-        ${ro ? "" : `<span class="sem-tools"><button class="mini" data-act="rename-sem">Rename</button><button class="mini danger-text" data-act="delete-sem">Delete</button></span>`}
+        ${ro ? "" : `<span class="sem-tools">${sem.ongoingCount < sem.rows.length ? `<button class="mini" data-act="ongoing-sem" title="Keep these courses as ongoing notes (not counted in CGPA)">Mark ongoing</button>` : ""}<button class="mini" data-act="rename-sem">Rename</button><button class="mini danger-text" data-act="delete-sem">Delete</button></span>`}
       </div>
       <div class="table-container"><table>
         <thead><tr>
@@ -582,6 +594,8 @@ $("semesters").addEventListener("click", (e) => {
   const id = tr?.dataset.id;
 
   if (act === "edit") startEdit(id);
+  else if (act === "publish") startEdit(id, true);
+  else if (act === "ongoing-sem") markSemesterOngoing(semName);
   else if (act === "delete") deleteCourse(id);
   else if (act === "rename-sem") renameSemester(semName);
   else if (act === "delete-sem") deleteSemester(semName);
@@ -611,6 +625,15 @@ function renameSemester(name) {
     .catch((e) => handleError(e, "Rename failed"));
 }
 
+function markSemesterOngoing(name) {
+  const list = coursesInSemester(name).filter((c) => !c.ongoing);
+  if (!list.length) return;
+  if (!confirm(`Keep the ${list.length} course(s) of "${name}" as ongoing notes?\nThey will not count in GPA / CGPA until you enter the final result. Marks you typed (Mid, CT, Attendance) stay.`)) return;
+  commitInChunks(list.map((c) => (b) => b.set(doc(coursesCol(state.profileId), c.id),
+    { ongoing: true, grade: "", gpa: 0, total: null, final: null }, { merge: true })))
+    .catch((e) => handleError(e, "Could not update"));
+}
+
 function deleteSemester(name) {
   const list = coursesInSemester(name);
   if (!confirm(`Delete the semester "${name}" and its ${list.length} course(s)?`)) return;
@@ -638,29 +661,41 @@ $("retakeGrade").innerHTML = C.GRADES.filter((g) => g.gpa > 0).map((g) => `<opti
 $("retakeGrade").value = "B+";
 
 function entryMode() { return form.elements.entry.value; }
+const isOngoing = () => $("ongoingBox").checked;
+const optNum = (id, max) => { const v = $(id).value; return v === "" ? null : clamp(Number(v) || 0, 0, max); };
 
 function updateEntryMode() {
-  const marks = entryMode() === "marks";
+  const ong = isOngoing();
+  const marks = ong || entryMode() === "marks";
   $("marksFields").hidden = !marks;
+  $("finalField").hidden = ong;          // Final is not out yet for an ongoing course
   $("gradeField").hidden = marks;
+  $("entrySwitch").hidden = ong;
   updatePreview();
 }
 
 function formResult() {
+  if (isOngoing()) {
+    return { mid: optNum("mid", 30), ct: optNum("ct", 10), attendance: optNum("attendance", 10), final: null, total: null, grade: "", gpa: 0, ongoing: true };
+  }
   if (entryMode() === "marks") {
     const mid = clamp(Number($("mid").value) || 0, 0, 30);
     const ct = clamp(Number($("ct").value) || 0, 0, 10);
     const attendance = clamp(Number($("attendance").value) || 0, 0, 10);
     const final = clamp(Number($("final").value) || 0, 0, 50);
     const total = mid + ct + attendance + final;
-    return { mid, ct, attendance, final, total, ...C.gradeFromTotal(total) };
+    return { mid, ct, attendance, final, total, ...C.gradeFromTotal(total), ongoing: false };
   }
   const grade = $("gradeSelect").value;
-  return { mid: null, ct: null, attendance: null, final: null, total: null, grade, gpa: C.gradeToGpa(grade) };
+  return { mid: null, ct: null, attendance: null, final: null, total: null, grade, gpa: C.gradeToGpa(grade), ongoing: false };
 }
 
 function updatePreview() {
   const r = formResult();
+  if (r.ongoing) {
+    $("formPreview").innerHTML = `Marks so far <b>${num(C.marksSoFar(r))}</b> / 50 (Mid + CT + Attendance) · saved as a note, <b>not counted</b> in CGPA until you enter the result`;
+    return;
+  }
   const credit = Number($("credit").value) || 0;
   const q = credit * r.gpa;
   $("formPreview").innerHTML =
@@ -670,6 +705,7 @@ function updatePreview() {
 
 form.addEventListener("input", updatePreview);
 form.querySelectorAll('input[name="entry"]').forEach((r) => r.addEventListener("change", updateEntryMode));
+$("ongoingBox").addEventListener("change", updateEntryMode);
 
 function resetForm() {
   const keepSemester = $("semester").value;
@@ -707,15 +743,17 @@ form.addEventListener("submit", (e) => {
   // Not awaited on purpose: offline, the write is queued and the screen updates immediately.
   setDoc(ref, data, { merge: true }).catch((err) => handleError(err, "Could not save"));
   const wasEdit = !!state.editId;
+  const wasOngoing = isOngoing();
   state.editId = null;
   resetForm();
   $("semester").value = semester;
+  if (wasOngoing && !wasEdit) { $("ongoingBox").checked = true; updateEntryMode(); }
   toast(wasEdit ? "Course updated" : "Course added", "ok", 1800);
 });
 
 $("cancelEdit").addEventListener("click", () => { state.editId = null; resetForm(); });
 
-function startEdit(id) {
+function startEdit(id, publish = false) {
   const r = state.courses.find((x) => x.id === id);
   if (!r) return;
   state.editId = id;
@@ -723,7 +761,12 @@ function startEdit(id) {
   $("courseCode").value = r.courseCode || "";
   $("courseTitle").value = r.courseTitle || "";
   $("credit").value = C.creditOf(r);
-  if (hasMarks(r)) {
+  $("ongoingBox").checked = !!r.ongoing && !publish;
+  if (r.ongoing) {
+    form.elements.entry.value = "marks";
+    $("mid").value = r.mid ?? ""; $("ct").value = r.ct ?? "";
+    $("attendance").value = r.attendance ?? ""; $("final").value = "";
+  } else if (hasMarks(r)) {
     form.elements.entry.value = "marks";
     $("mid").value = r.mid ?? ""; $("ct").value = r.ct ?? "";
     $("attendance").value = r.attendance ?? ""; $("final").value = r.final ?? "";
@@ -731,13 +774,14 @@ function startEdit(id) {
     form.elements.entry.value = "grade";
     $("gradeSelect").value = r.grade;
   }
-  $("formTitle").textContent = "✏️ Edit course";
-  $("saveBtn").textContent = "Update course";
+  $("formTitle").textContent = publish ? `✅ Enter result · ${r.courseCode}` : "✏️ Edit course";
+  $("saveBtn").textContent = publish ? "Save result" : "Update course";
   $("cancelEdit").hidden = false;
   $("addCard").open = true;
   updateEntryMode();
   setTab("results");
   $("addCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (publish) $("final").focus({ preventScroll: true });
 }
 
 /* Pre-fill the form for a retake (used from the Analytics tab) */
@@ -766,6 +810,7 @@ let chartTable = false;
 
 function renderAnalytics() {
   renderChart();
+  renderForecast();
   renderTarget();
   renderPredictor();
   renderRetakes();
@@ -773,10 +818,11 @@ function renderAnalytics() {
 
 function renderChart() {
   const st = state.stats;
-  const labels = st.semesters.map((s) => s.name);
+  const gs = st.semesters.filter((s) => !s.inProgress); // ongoing-only semesters have no GPA yet
+  const labels = gs.map((s) => s.name);
   const series = [
-    { name: "Semester GPA", values: st.semesters.map((s) => s.gpa), color: "var(--series-1)" },
-    { name: { attempted: "CGPA (attempted)", earned: "CGPA (earned)", latest: "CGPA (retake replaces)" }[state.mode], values: st.semesters.map((s) => C.semesterCgpa(s, state.mode)), color: "var(--series-2)" },
+    { name: "Semester GPA", values: gs.map((s) => s.gpa), color: "var(--series-1)" },
+    { name: { attempted: "CGPA (attempted)", earned: "CGPA (earned)", latest: "CGPA (retake replaces)" }[state.mode], values: gs.map((s) => C.semesterCgpa(s, state.mode)), color: "var(--series-2)" },
   ];
   $("chartTable").hidden = !chartTable;
   $("chartWrap").hidden = chartTable;
@@ -794,6 +840,64 @@ let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (state.tab === "analytics" && !chartTable) renderChart(); }, 150);
+});
+
+/* ---- forecast for ongoing courses ---- */
+function ongoingCourses() { return state.courses.filter((c) => c.ongoing).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); }
+
+function renderForecast() {
+  const list = ongoingCourses();
+  const card = $("forecastCard");
+  card.hidden = !list.length;
+  if (!list.length) return;
+  const picks = {};
+  list.forEach((c) => { picks[c.id] = state.forecastPicks[c.id] || state.forecastAll; });
+  const opts = (sel) => C.GRADES.map((g) => `<option value="${g.grade}"${g.grade === sel ? " selected" : ""}>${g.grade} (${f2(g.gpa)})</option>`).join("");
+  $("forecastAll").innerHTML = opts(state.forecastAll);
+
+  const rows = list.map((c) => {
+    const have = C.marksSoFar(c);
+    const hasAny = hasPartial(c);
+    const need = C.neededFinal(c.mid, c.ct, c.attendance).list.find((g) => g.grade === picks[c.id]);
+    const hint = !hasAny ? "" : need?.secured ? "✓ already secured" : need && !need.reachable ? "✕ not reachable" : need ? `Final ≥ ${num(need.need)}/50` : "";
+    return `<tr data-id="${esc(c.id)}">
+      <td class="left" data-label="Course"><b>${esc(c.courseCode)}</b> ${esc(c.courseTitle)}<small>${esc(c.semester || "")}</small></td>
+      <td data-label="Credit">${num(C.creditOf(c))}</td>
+      <td data-label="So far">${hasAny ? `${num(have)}<small>/50</small>` : "–"}</td>
+      <td data-label="Expected grade"><select class="fc-grade" aria-label="Expected grade for ${esc(c.courseCode)}">${opts(picks[c.id])}</select></td>
+      <td data-label="Final needed" class="hintcell">${hint}</td>
+      <td class="actions"><button class="mini" data-predict="${esc(c.id)}" title="Open the Final marks predictor with these marks">Predict</button></td>
+    </tr>`;
+  }).join("");
+  $("forecastList").innerHTML = `<div class="table-container"><table class="mini-table fc-table"><thead><tr><th class="left">Course</th><th>Credit</th><th>So far</th><th>Expected grade</th><th>Final needed</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+
+  const cur = C.cgpaOf(state.stats, state.mode);
+  const pr = C.projectWithGrades(state.courses, picks, state.mode, requiredCredits());
+  const d = pr.cgpa - cur;
+  $("forecastResult").className = "result-box";
+  $("forecastResult").innerHTML = `If you get these grades: this semester's GPA will be <b>${f3(pr.semesterGpa)}</b> and your CGPA <b>${f3(cur)} → ${f3(pr.cgpa)}</b>
+    <span class="${d >= 0 ? "ok-text" : "bad-text"}">(${d >= 0 ? "+" : "−"}${f3(Math.abs(d))})</span>
+    · completed credits ${num(state.stats.completedCredits)} → ${num(pr.stats.completedCredits)} of ${num(pr.stats.requiredCredits)}.`;
+}
+$("forecastAll").addEventListener("change", (e) => {
+  state.forecastAll = e.target.value;
+  state.forecastPicks = {};
+  renderForecast();
+});
+$("forecastList").addEventListener("change", (e) => {
+  const sel = e.target.closest(".fc-grade");
+  if (!sel) return;
+  state.forecastPicks[sel.closest("tr").dataset.id] = sel.value;
+  renderForecast();
+});
+$("forecastList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-predict]");
+  if (!b) return;
+  const c = state.courses.find((x) => x.id === b.dataset.predict);
+  if (!c) return;
+  $("pMid").value = c.mid ?? ""; $("pCt").value = c.ct ?? ""; $("pAtt").value = c.attendance ?? "";
+  renderPredictor();
+  $("pMid").closest(".card").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
 /* ---- target CGPA ---- */
@@ -912,26 +1016,36 @@ $("importParse").addEventListener("click", () => {
   const parsed = parseResultText($("importText").value);
   state.parsedImport = parsed;
   const host = $("importPreview");
-  if (!parsed.semesters.length) {
-    host.innerHTML = '<p class="bad-text import-sum">I could not find any course rows. Copy the whole result page (Ctrl+A, Ctrl+C) and paste it again.</p>';
+  const ongoing = parsed.ongoing;
+  if (!parsed.semesters.length && !ongoing) {
+    host.innerHTML = '<p class="bad-text import-sum">I could not find any course rows. Copy the whole “Result View” or “Course Status” page (Ctrl+A, Ctrl+C) and paste it again.</p>';
     return;
   }
-  const rowsFor = parsed.semesters.map((s) => ({ ...s, stats: C.computeStats(s.courses.map((c, i) => ({ ...c, id: "p" + i, semester: s.name })), 161).semesters[0] }));
-  const total = rowsFor.reduce((a, s) => a + s.courses.length, 0);
-  const all = C.computeStats(parsed.semesters.flatMap((s) => s.courses.map((c, i) => ({ ...c, id: s.name + i, semester: s.name, createdAt: i }))), parsed.requiredCredits || 161);
-  const last = parsed.semesters[parsed.semesters.length - 1].reported;
-  const match = (a, b) => (b === undefined ? "" : Math.abs(a - b) < 0.0011 ? '<span class="ok-text">✓</span>' : `<span class="bad-text">≠ ${b}</span>`);
-  const trs = rowsFor.map((s) => `<tr><td class="left">${esc(s.name)}</td><td>${s.courses.length}</td><td>${num(s.stats.credits)}</td><td>${f3(s.stats.gpa)} ${match(s.stats.gpa, s.reported.gpa)}</td></tr>`).join("");
+  const total = parsed.semesters.reduce((a, s) => a + s.courses.length, 0);
+  let gradedHtml = "";
+  if (parsed.semesters.length) {
+    const rowsFor = parsed.semesters.map((s) => ({ ...s, stats: C.computeStats(s.courses.map((c, i) => ({ ...c, id: "p" + i, semester: s.name })), 161).semesters[0] }));
+    const all = C.computeStats(parsed.semesters.flatMap((s) => s.courses.map((c, i) => ({ ...c, id: s.name + i, semester: s.name, createdAt: i }))), parsed.requiredCredits || 161);
+    const last = parsed.semesters[parsed.semesters.length - 1].reported;
+    const match = (a, b) => (b === undefined ? "" : Math.abs(a - b) < 0.0011 ? '<span class="ok-text">✓</span>' : `<span class="bad-text">≠ ${b}</span>`);
+    const trs = rowsFor.map((s) => `<tr><td class="left">${esc(s.name)}</td><td>${s.courses.length}</td><td>${num(s.stats.credits)}</td><td>${f3(s.stats.gpa)} ${match(s.stats.gpa, s.reported.gpa)}</td></tr>`).join("");
+    gradedHtml = `<p><b>${total}</b> graded courses in <b>${parsed.semesters.length}</b> semesters found${parsed.requiredCredits ? ` · degree needs <b>${parsed.requiredCredits}</b> credits` : ""}.
+      ${parsed.skipped.length ? `<span class="warn">${parsed.skipped.length} line(s) looked like courses but could not be read.</span>` : ""}</p>
+      <table class="mini-table"><thead><tr><th class="left">Semester</th><th>Courses</th><th>Credits</th><th>GPA (✓ = same as your sheet)</th></tr></thead><tbody>${trs}</tbody></table>
+      <p class="hint">CGPA from this data: attempted <b>${f3(all.cgpaAttempted)}</b> ${match(all.cgpaAttempted, last.cgpaAttempted)} · earned <b>${f3(all.cgpaEarned)}</b> ${match(all.cgpaEarned, last.cgpaEarned)}</p>`;
+  }
+  const ongoingCredits = ongoing ? ongoing.courses.reduce((a, c) => a + c.credit, 0) : 0;
+  const ongoingHtml = ongoing
+    ? `<p><b>${ongoing.courses.length}</b> ongoing courses of <b>${esc(ongoing.name)}</b> (${num(ongoingCredits)} credits) found. They are saved as <b>ongoing notes</b>: not counted in CGPA until you enter their results.</p>`
+    : "";
+  const count = total + (ongoing ? ongoing.courses.length : 0);
   host.innerHTML = `<div class="import-sum">
-    <p><b>${total}</b> courses in <b>${parsed.semesters.length}</b> semesters found${parsed.requiredCredits ? ` · degree needs <b>${parsed.requiredCredits}</b> credits` : ""}.
-    ${parsed.skipped.length ? `<span class="warn">${parsed.skipped.length} line(s) looked like courses but could not be read.</span>` : ""}</p>
-    <table class="mini-table"><thead><tr><th class="left">Semester</th><th>Courses</th><th>Credits</th><th>GPA (✓ = same as your sheet)</th></tr></thead><tbody>${trs}</tbody></table>
-    <p class="hint">CGPA from this data: attempted <b>${f3(all.cgpaAttempted)}</b> ${match(all.cgpaAttempted, last.cgpaAttempted)} · earned <b>${f3(all.cgpaEarned)}</b> ${match(all.cgpaEarned, last.cgpaEarned)}</p>
+    ${gradedHtml}${ongoingHtml}
     <div class="import-options">
       <label><input type="radio" name="importMode" value="skip" checked> Add to this profile (skip courses already there)</label>
-      <label><input type="radio" name="importMode" value="replace"> Replace everything in this profile with this result</label>
+      <label><input type="radio" name="importMode" value="replace"> Replace ${parsed.semesters.length && ongoing ? "the graded and ongoing courses" : parsed.semesters.length ? "all graded courses" : "all ongoing courses"} in this profile with this</label>
     </div>
-    <button type="button" class="primary" id="importGo">Import ${total} courses into “${esc(profileName())}”</button>
+    <button type="button" class="primary" id="importGo">Import ${count} courses into “${esc(profileName())}”</button>
   </div>`;
   $("importGo").addEventListener("click", doImport);
 });
@@ -940,26 +1054,32 @@ async function doImport() {
   const parsed = state.parsedImport;
   if (!parsed || !state.profileId) return;
   const mode = document.querySelector('input[name="importMode"]:checked').value;
-  if (mode === "replace" && state.courses.length && !confirm(`This deletes the ${state.courses.length} existing course(s) in this profile first. Continue?`)) return;
+  const replaces = (c) => (c.ongoing ? !!parsed.ongoing : parsed.semesters.length > 0);
+  const toDelete = mode === "replace" ? state.courses.filter(replaces) : [];
+  if (toDelete.length && !confirm(`This deletes the ${toDelete.length} existing course(s) it replaces in this profile first. Continue?`)) return;
 
   const have = new Set(state.courses.map((c) => semKey(c.semester) + "|" + C.codeKey(c.courseCode)));
   const ops = [];
-  if (mode === "replace") state.courses.forEach((c) => ops.push((b) => b.delete(doc(coursesCol(state.profileId), c.id))));
+  toDelete.forEach((c) => ops.push((b) => b.delete(doc(coursesCol(state.profileId), c.id))));
+  toDelete.forEach((c) => have.delete(semKey(c.semester) + "|" + C.codeKey(c.courseCode)));
   let added = 0, skipped = 0;
   const base = Date.now();
-  parsed.semesters.forEach((s) => s.courses.forEach((c) => {
-    const key = semKey(s.name) + "|" + C.codeKey(c.courseCode);
-    if (mode === "skip" && have.has(key)) { skipped++; return; }
+  const add = (semester, c, extra) => {
+    const key = semKey(semester) + "|" + C.codeKey(c.courseCode);
+    if (have.has(key)) { skipped++; return; }
     have.add(key);
     const ref = doc(coursesCol(state.profileId));
     const data = {
-      semester: s.name, courseCode: c.courseCode, courseTitle: c.courseTitle, credit: c.credit,
+      semester, courseCode: c.courseCode, courseTitle: c.courseTitle, credit: c.credit,
       mid: null, ct: null, attendance: null, final: null, total: null,
-      grade: c.grade, gpa: c.gpa, comment: c.comment || "", createdAt: base + added,
+      grade: "", gpa: 0, ongoing: false, comment: c.comment || "", createdAt: base + added,
+      ...extra,
     };
     ops.push((b) => b.set(ref, data));
     added++;
-  }));
+  };
+  parsed.semesters.forEach((s) => s.courses.forEach((c) => add(s.name, c, { grade: c.grade, gpa: c.gpa })));
+  if (parsed.ongoing) parsed.ongoing.courses.forEach((c) => add(parsed.ongoing.name, c, { ongoing: true }));
   if (parsed.requiredCredits && parsed.requiredCredits !== requiredCredits()) {
     ops.push((b) => b.set(doc(profilesCol(), state.profileId), { requiredCredits: parsed.requiredCredits }, { merge: true }));
   }
@@ -1011,7 +1131,7 @@ function renderShareState() {
   }
   const url = shareUrl(p.shareId);
   box.innerHTML = `<div class="share-link"><input id="shareUrl" readonly value="${esc(url)}" aria-label="Share link"><button type="button" class="mini" id="shareCopy">Copy</button></div>
-    <p class="hint">Anyone with this link can see ${p.shareHideMarks ? "the grades" : "the marks and grades"} as they were when you last pressed “Update link”.</p>`;
+    <p class="hint">Anyone with this link can see ${p.shareHideMarks ? "the grades" : "the marks and grades"} as they were when you last pressed “Update link”. Ongoing courses are never shared.</p>`;
   $("shareCopy").onclick = async () => {
     try { await navigator.clipboard.writeText(url); toast("Link copied", "ok", 2000); }
     catch { $("shareUrl").select(); toast("Press Ctrl+C to copy", "", 3000); }
@@ -1032,7 +1152,7 @@ $("shareCreate").addEventListener("click", async () => {
     requiredCredits: requiredCredits(),
     hideMarks: hide,
     updatedAt: Date.now(),
-    courses: state.courses.map((c) => ({
+    courses: state.courses.filter((c) => !c.ongoing).map((c) => ({
       semester: c.semester || "", courseCode: c.courseCode || "", courseTitle: c.courseTitle || "",
       credit: C.creditOf(c), grade: c.grade, gpa: Number(c.gpa) || 0, comment: c.comment || "",
       createdAt: c.createdAt || 0,

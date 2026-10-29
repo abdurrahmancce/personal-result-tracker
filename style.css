@@ -443,6 +443,7 @@ button.delete:hover { background: #a93226; }
 .result-box b { font-size: 1.15rem; }
 
 .mini-table { width: 100%; min-width: 0; font-size: 0.9rem; border-collapse: collapse; }
+.mini-table thead { background: none; color: var(--muted); }
 .mini-table th { background: none; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 6px; }
 .mini-table td { padding: 6px; border-bottom: 1px solid var(--border); }
 
@@ -540,6 +541,26 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, Menlo, Cons
   .course-form, .marks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .course-form .f-wide { grid-column: 1 / -1; }
 }
+
+/* ---------- Ongoing courses ---------- */
+.ongoing-toggle {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer;
+  border: 1px dashed var(--border); border-radius: 10px; background: var(--card-2); font-size: 0.95rem;
+}
+.ongoing-toggle input { width: 18px; height: 18px; flex: none; }
+.ongoing-toggle small { color: var(--muted); }
+.ongoing-toggle:has(input:checked) { border-style: solid; border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+tr.ongoing-row { background: rgba(59, 130, 246, 0.12); }
+.badge.ongoing { color: #1d4ed8; border-color: currentColor; white-space: nowrap; }
+:root[data-theme="dark"] .badge.ongoing { color: #93c5fd; }
+.chip.ongoing { color: #1d4ed8; background: rgba(59, 130, 246, 0.14); border-color: rgba(59, 130, 246, 0.4); }
+:root[data-theme="dark"] .chip.ongoing { color: #93c5fd; }
+button.result { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; color: #fff; background: #2563eb; }
+button.result:hover { background: #1d4ed8; }
+.fc-table td small { display: block; color: var(--muted); font-size: 0.78rem; }
+.fc-table .hintcell { color: var(--muted); font-size: 0.85rem; }
+.fc-table select { padding: 5px 8px; }
+#forecastResult { margin-top: 12px; }
 
 /* Phones: every table row becomes a card */
 @media (max-width: 720px) {

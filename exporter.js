@@ -23,6 +23,11 @@ export function toCSV(stats) {
   const lines = [head.map(csvCell).join(",")];
   stats.semesters.forEach((sem) => {
     sem.rows.forEach((r) => {
+      if (r.ongoing) {
+        // ongoing: keep the marks typed so far, no grade, clearly marked, not part of any total
+        lines.push([sem.name, r.courseCode, r.courseTitle, r.credit, r.mid ?? "", r.ct ?? "", r.attendance ?? "", "", "", "", "", "", "Ongoing (not counted)"].map(csvCell).join(","));
+        return;
+      }
       const m = hasMarks(r);
       lines.push(
         [
@@ -103,12 +108,12 @@ export async function makePDF({ profileName, stats, mode }) {
     margin: { left: margin, right: margin },
   });
 
-  const withMarks = stats.semesters.some((s) => s.rows.some(hasMarks));
+  const withMarks = stats.semesters.some((s) => s.rows.some((r) => !r.ongoing && hasMarks(r)));
   const columns = ["Code", "Course title", "Cr", ...(withMarks ? ["Mid", "CT", "Att", "Final", "Total"] : []), "Grade", "Point", "Cr x Pt"];
 
-  stats.semesters.forEach((sem) => {
+  stats.semesters.filter((s) => !s.inProgress).forEach((sem) => {
     const y0 = doc.lastAutoTable.finalY + 6;
-    const body = sem.rows.map((r) => {
+    const body = sem.rows.filter((r) => !r.ongoing).map((r) => {
       const m = hasMarks(r);
       return [
         pdfText(r.courseCode),
