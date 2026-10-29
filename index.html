@@ -4,76 +4,234 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal Result Tracker</title>
+  <meta name="theme-color" content="#0f766e">
+  <script>
+    // Apply the saved (or system) theme before first paint so there is no flash.
+    (function () {
+      try {
+        var t = localStorage.getItem("rt_theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h2>📘 Personal Result Tracker</h2>
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-screen">
-      <p>Sign in to save your results and access them from any device.</p>
+    <header class="topbar">
+      <h1>📘 Personal Result Tracker</h1>
+      <div class="top-actions">
+        <span id="syncStatus" class="sync" hidden></span>
+        <button id="themeBtn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark / light mode">🌙</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice" hidden></div>
+    <div id="loading" class="loading">Loading…</div>
+
+    <!-- Login -->
+    <section id="loginScreen" class="login-screen card" hidden>
+      <p>Sign in to save your results and open them from any device.</p>
       <button id="loginBtn" class="google-btn" type="button">
         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="" class="icon"> Sign in with Google
       </button>
-    </div>
+    </section>
 
-    <!-- App (visible after login) -->
-    <div id="appScreen" hidden>
+    <!-- Shared (read-only) view banner -->
+    <div id="shareBanner" class="share-banner" hidden></div>
 
-    <div class="user-bar">
-      <img id="userPhoto" alt="" hidden referrerpolicy="no-referrer">
-      <span id="userName"></span>
-      <button id="logoutBtn" type="button">Logout</button>
-    </div>
+    <!-- App (after login, or in shared view) -->
+    <main id="appScreen" hidden>
 
-    <!-- Form Section -->
-    <form id="resultForm">
-      <input type="text" id="courseCode" placeholder="Course Code" required>
-      <input type="text" id="courseTitle" placeholder="Course Title">
-      <input type="number" id="mid" placeholder="Mid (30)" min="0" max="30">
-      <input type="number" id="ct" placeholder="CT (10)" min="0" max="10">
-      <input type="number" id="attendance" placeholder="Attendance (10)" min="0" max="10">
-      <input type="number" id="final" placeholder="Final (50)" min="0" max="50">
-      <button type="submit">Add Result</button>
-    </form>
+      <div class="user-bar" id="userBar">
+        <div class="profile-box">
+          <label for="profileSelect">Profile</label>
+          <select id="profileSelect"></select>
+          <button id="profileAdd" class="mini" type="button" title="New profile">＋ New</button>
+          <button id="profileRename" class="mini" type="button" title="Rename profile">Rename</button>
+          <button id="profileDelete" class="mini danger-text" type="button" title="Delete profile">Delete</button>
+        </div>
+        <div class="user-box">
+          <img id="userPhoto" alt="" hidden referrerpolicy="no-referrer">
+          <span id="userName"></span>
+          <button id="logoutBtn" class="mini" type="button">Logout</button>
+        </div>
+      </div>
 
-    <!-- CGPA Card -->
-    <div class="cgpa-card">
-      <h3>CGPA: <span id="cgpa">0.00</span></h3>
-    </div>
+      <!-- Summary -->
+      <section class="summary">
+        <div class="cgpa-card" id="cgpaCard">
+          <div class="cgpa-label">CGPA</div>
+          <div class="cgpa-value" id="cgpa">0.000</div>
+          <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="CGPA method">
+            <button type="button" role="tab" data-mode="attempted">Attempted</button>
+            <button type="button" role="tab" data-mode="earned">Earned</button>
+            <button type="button" role="tab" data-mode="latest">Retake replaces</button>
+          </div>
+          <p class="mode-help" id="modeHelp"></p>
+        </div>
+        <div class="stats" id="stats"></div>
+      </section>
 
-    <!-- Result Table -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Course Code</th>
-            <th>Course Title</th>
-            <th>Mid (30)</th>
-            <th>CT (10)</th>
-            <th>Attendance (10)</th>
-            <th>Final (50)</th>
-            <th>Total</th>
-            <th>Grade</th>
-            <th>GPA</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="resultTable"></tbody>
-      </table>
-    </div>
+      <!-- Tabs -->
+      <nav class="tabs" id="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="results" class="active">Results</button>
+        <button type="button" role="tab" data-tab="analytics">Analytics</button>
+        <button type="button" role="tab" data-tab="data">Import &amp; Export</button>
+      </nav>
 
-    </div><!-- /appScreen -->
+      <!-- RESULTS -->
+      <section id="tab-results" class="panel">
+        <details class="card add-card" id="addCard" open>
+          <summary id="formTitle">➕ Add a course</summary>
+          <form id="resultForm" class="course-form" autocomplete="off">
+            <label class="f f-sem">Semester
+              <input id="semester" list="semesterList" required placeholder="e.g. Autumn-2026">
+              <datalist id="semesterList"></datalist>
+            </label>
+            <label class="f">Course code
+              <input type="text" id="courseCode" required placeholder="CCE-3601">
+            </label>
+            <label class="f f-wide">Course title
+              <input type="text" id="courseTitle" placeholder="Course title">
+            </label>
+            <label class="f f-credit">Credit
+              <input type="number" id="credit" min="0.5" max="12" step="0.5" value="3" required>
+            </label>
+
+            <div class="entry-switch f-full" role="radiogroup" aria-label="How do you want to enter the result?">
+              <label><input type="radio" name="entry" value="marks" checked> Enter marks</label>
+              <label><input type="radio" name="entry" value="grade"> I only know the grade</label>
+            </div>
+
+            <div id="marksFields" class="marks f-full">
+              <label class="f">Mid <small>/30</small><input type="number" id="mid" min="0" max="30" step="any" placeholder="0"></label>
+              <label class="f">CT <small>/10</small><input type="number" id="ct" min="0" max="10" step="any" placeholder="0"></label>
+              <label class="f">Attendance <small>/10</small><input type="number" id="attendance" min="0" max="10" step="any" placeholder="0"></label>
+              <label class="f">Final <small>/50</small><input type="number" id="final" min="0" max="50" step="any" placeholder="0"></label>
+            </div>
+            <label id="gradeField" class="f" hidden>Grade
+              <select id="gradeSelect"></select>
+            </label>
+
+            <div class="preview f-full" id="formPreview" aria-live="polite"></div>
+
+            <div class="form-actions f-full">
+              <button type="submit" id="saveBtn" class="primary">Add course</button>
+              <button type="button" id="cancelEdit" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </details>
+
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="Search course code, title or grade…" aria-label="Search courses">
+          <label class="sort-box">Sort
+            <select id="sort" aria-label="Sort courses">
+              <option value="order">Entry order</option>
+              <option value="code">Course code</option>
+              <option value="gpa-desc">Grade point (high → low)</option>
+              <option value="gpa-asc">Grade point (low → high)</option>
+              <option value="credit-desc">Credit (high → low)</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="semesters"></div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section id="tab-analytics" class="panel" hidden>
+        <div class="card">
+          <div class="card-head">
+            <h2>CGPA progress</h2>
+            <button type="button" class="mini" id="chartTableBtn" aria-pressed="false">Show table</button>
+          </div>
+          <div id="chartWrap" class="chart-wrap"></div>
+          <div id="chartTable" class="chart-table" hidden></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h2>🎯 Target CGPA</h2>
+            <p class="hint">How much GPA do you need next semester? (assumes new courses and that you pass them)</p>
+            <div class="inline-form">
+              <label>Target CGPA <input type="number" id="targetCgpa" min="0" max="4" step="0.01" value="3.50"></label>
+              <label>Next semester credits <input type="number" id="targetCredits" min="1" max="40" step="0.5" value="20"></label>
+            </div>
+            <div id="targetResult" class="result-box"></div>
+            <div id="whatIf"></div>
+          </div>
+
+          <div class="card">
+            <h2>📝 Final marks predictor</h2>
+            <p class="hint">Enter what you already have. It shows the Final marks you need for each grade.</p>
+            <div class="inline-form">
+              <label>Mid <small>/30</small><input type="number" id="pMid" min="0" max="30" step="any" placeholder="0"></label>
+              <label>CT <small>/10</small><input type="number" id="pCt" min="0" max="10" step="any" placeholder="0"></label>
+              <label>Attendance <small>/10</small><input type="number" id="pAtt" min="0" max="10" step="any" placeholder="0"></label>
+            </div>
+            <div id="predictResult"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>🔁 Retake &amp; improvement</h2>
+          <p class="hint">Courses with F, Y or D that you have not retaken yet, and what a retake would do to your CGPA (using the method selected above).</p>
+          <label class="inline-select">If I get
+            <select id="retakeGrade"></select>
+          </label>
+          <div id="retakeList"></div>
+        </div>
+      </section>
+
+      <!-- IMPORT & EXPORT -->
+      <section id="tab-data" class="panel" hidden>
+        <div class="card" id="importCard">
+          <h2>📥 Import from your university result page</h2>
+          <p class="hint">Open your university “Result View” page, select all (<kbd>Ctrl</kbd>+<kbd>A</kbd>), copy (<kbd>Ctrl</kbd>+<kbd>C</kbd>) and paste below. Your data goes only to your own private account.</p>
+          <textarea id="importText" rows="6" placeholder="Paste the result text here…"></textarea>
+          <div class="row-actions">
+            <button type="button" id="importParse" class="primary">Read result</button>
+            <button type="button" id="importClear">Clear</button>
+          </div>
+          <div id="importPreview"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h2>⬇️ Download</h2>
+            <p class="hint">For the selected profile.</p>
+            <div class="row-actions">
+              <button type="button" id="pdfBtn" class="primary">Download PDF</button>
+              <button type="button" id="csvBtn">Download Excel / CSV</button>
+            </div>
+          </div>
+
+          <div class="card" id="shareCard">
+            <h2>🔗 Share (read-only)</h2>
+            <p class="hint">Make a link that shows this profile's result to a friend or family member. They cannot edit anything.</p>
+            <label class="check"><input type="checkbox" id="shareHideMarks"> Hide marks (show only grades)</label>
+            <div id="shareState"></div>
+            <div class="row-actions">
+              <button type="button" id="shareCreate" class="primary">Create link</button>
+              <button type="button" id="shareStop" hidden>Stop sharing</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
 
     <!-- About Me Card -->
     <div class="about-me-card">
       <h3>Abdur Rahman</h3>
       <p>
-        <a href="https://github.com/abdurrahmancce" target="_blank" class="icon-link">
+        <a href="https://github.com/abdurrahmancce" target="_blank" rel="noopener" class="icon-link">
           <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/github.svg" alt="GitHub" class="icon"> GitHub
         </a> |
-        <a href="https://www.linkedin.com/in/abdur-rahman-akash-60450b2aa" target="_blank" class="icon-link">
+        <a href="https://www.linkedin.com/in/abdur-rahman-akash-60450b2aa" target="_blank" rel="noopener" class="icon-link">
           <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg" alt="LinkedIn" class="icon"> LinkedIn
         </a> |
         <a href="mailto:akash.abdur.2002@gmail.com" class="icon-link">
@@ -83,6 +241,7 @@
     </div>
   </div>
 
+  <div id="toasts" class="toasts" aria-live="polite"></div>
   <script type="module" src="script.js"></script>
 </body>
 </html>
