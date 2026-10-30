@@ -237,6 +237,11 @@ Ideas and fixes are welcome! Open an [issue](https://github.com/abdurrahmancce/p
 
 ## 👤 Author
 
-**Abdur Rahman**, [@abdurrahmancce](https://github.com/abdurrahmancce)
+**Abdur Rahman**
+
+[![GitHub](https://img.shields.io/badge/GitHub-abdurrahmancce-181717?logo=github)](https://github.com/abdurrahmancce)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-0f766e)](https://abdurrahmancce.github.io/Personal-Portfolio/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/abdur-rahman-akash-60450b2aa)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?logo=gmail&logoColor=white)](mailto:akash.abdur.2002@gmail.com)
 
 ⭐ If this helped you, give the repo a star!
