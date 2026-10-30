@@ -1,7 +1,7 @@
 // sw.js — lets the app open without internet.
 // Strategy: network first (so updates show up right away), fall back to the saved copy when offline.
 // Firestore's own data cache handles the results; this only saves the app files and libraries.
-const CACHE = "result-tracker-v2";
+const CACHE = "result-tracker-v3";
 const CORE = [
   "./", "index.html", "style.css", "script.js", "calc.js", "parser.js", "chart.js", "exporter.js", "firebase-config.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",
