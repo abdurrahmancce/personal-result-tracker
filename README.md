@@ -5,7 +5,7 @@
 **Track your semester results and CGPA, and open them on any device.**
 Sign in with Google, import your university result sheet in one paste, and see exactly what grades you need next.
 
-[🚀 **Live app**](https://abdurrahmancce.github.io/personal-result-tracker/) · [🐞 Report a bug](https://github.com/abdurrahmancce/personal-result-tracker/issues)
+[🚀 **Live app**](https://abdurrahmancce.github.io/personal-result-tracker/) · [📖 **User guide (English + বাংলা)**](https://abdurrahmancce.github.io/personal-result-tracker/guide.html) · [🐞 Report a bug](https://github.com/abdurrahmancce/personal-result-tracker/issues)
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
@@ -102,6 +102,18 @@ On small screens, tables turn into easy-to-read cards.
 
 ---
 
+## 📖 User guide
+
+A full guide in **English and Bangla (বাংলা)** is built into the app: click **📖 Guide** at the top, or open [`guide.html`](https://abdurrahmancce.github.io/personal-result-tracker/guide.html). It covers:
+
+- ✅ Quick start and sign-in on many devices
+- ➕ Adding, editing and deleting courses, and ongoing courses
+- 🧮 Every formula with a worked example (GPA, CGPA methods, retakes, target CGPA, final marks)
+- 📥 Import, export and sharing
+- ❓ FAQ and troubleshooting
+
+---
+
 ## 🧮 CGPA methods
 
 | Method | How it is calculated | When to use |
@@ -190,6 +202,7 @@ Then in the repo: **Settings → Pages → Deploy from branch → `main` / root*
 ```
 📦 personal-result-tracker
  ┣ 📄 index.html            App layout
+ ┣ 📖 guide.html            User guide (English + Bangla)
  ┣ 🎨 style.css             Themes (dark/light) and mobile layout
  ┣ ⚙️ script.js             UI, Firebase auth and sync, tabs, forms
  ┣ 🧮 calc.js               Grades, GPA/CGPA, forecast, predictor

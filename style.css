@@ -597,3 +597,7 @@ button.result:hover { background: #1d4ed8; }
 @media print {
   .tabs, .user-bar, .toolbar, .add-card, .about-me-card, .topbar .top-actions, .install-btn { display: none !important; }
 }
+
+/* Link to the user guide in the top bar */
+a.mini.guide-link { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; }
+a.mini.guide-link:hover { border-color: var(--brand); color: var(--brand); }

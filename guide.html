@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User Guide · Personal Result Tracker</title>
+  <meta name="description" content="How to use Personal Result Tracker and how every calculation works. English and Bangla.">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("rt_theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+        var l = localStorage.getItem("rt_guide_lang") || (/^bn/i.test(navigator.language) ? "bn" : "en");
+        document.documentElement.dataset.lang = l;
+        document.documentElement.lang = l;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: block; padding: 0; line-height: 1.65; }
+    .g-wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 64px; }
+    .g-top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .g-top-in { max-width: 980px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .g-top a.back { color: var(--brand); font-weight: 700; text-decoration: none; }
+    .lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--card); }
+    .lang-switch button { border: 0; background: transparent; color: var(--text); padding: 8px 18px; font-weight: 700; cursor: pointer; font-size: 1rem; }
+    .lang-switch button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+    html[data-lang="bn"] [lang="en"] { display: none !important; }
+    html[data-lang="en"] [lang="bn"] { display: none !important; }
+    .hero { text-align: center; padding: 28px 8px 8px; }
+    .hero h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin-bottom: 8px; }
+    .hero p { color: var(--muted); max-width: 680px; margin: 0 auto; }
+    .toc { margin: 24px 0; }
+    .toc ol { columns: 2; column-gap: 32px; padding-left: 22px; }
+    @media (max-width: 640px) { .toc ol { columns: 1; } }
+    .toc a { color: var(--brand); text-decoration: none; font-weight: 600; }
+    .toc li { margin: 4px 0; break-inside: avoid; }
+    .g-sec { margin-top: 20px; scroll-margin-top: 70px; }
+    .g-sec h2 { font-size: 1.45rem; margin-bottom: 10px; color: var(--brand); }
+    .g-sec h3 { font-size: 1.1rem; margin: 18px 0 6px; }
+    .g-sec p, .g-sec li { color: var(--text); }
+    .g-sec ul, .g-sec ol { padding-left: 22px; margin: 8px 0; }
+    .g-sec li { margin: 4px 0; }
+    .muted { color: var(--muted); }
+    .formula { background: var(--card-2); border: 1px solid var(--border); border-left: 4px solid var(--brand); border-radius: 10px; padding: 12px 16px; margin: 10px 0; font-family: ui-monospace, Consolas, monospace; font-size: 0.95rem; overflow-x: auto; white-space: pre; }
+    .tip, .warn { border-radius: 10px; padding: 10px 14px; margin: 12px 0; border: 1px solid var(--border); }
+    .tip { background: var(--accent-soft); }
+    .warn { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.5); }
+    .g-sec table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.95rem; }
+    .g-sec th, .g-sec td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    .g-sec th { background: var(--card-2); }
+    .tbl-scroll { overflow-x: auto; }
+    .steps { counter-reset: s; list-style: none; padding-left: 0 !important; }
+    .steps li { counter-increment: s; position: relative; padding: 10px 12px 10px 52px; margin: 8px 0; background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; }
+    .steps li::before { content: counter(s); position: absolute; left: 12px; top: 10px; width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    code, kbd { background: var(--card-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 0.92em; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+    .pill { background: var(--accent-soft); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 0.92rem; }
+    html[data-lang="bn"] body { font-family: "Noto Sans Bengali", "Hind Siliguri", "Nirmala UI", "Segoe UI", system-ui, sans-serif; }
+    footer.g-foot { text-align: center; color: var(--muted); margin-top: 36px; }
+    @media (max-width: 720px) {
+      .g-sec table { display: table; min-width: 460px; width: 100%; }
+      .g-sec thead { display: table-header-group; }
+      .g-sec tbody { display: table-row-group; }
+      .g-sec tr { display: table-row; border: none; padding: 0; margin: 0; background: none; }
+      .g-sec td, .g-sec th { display: table-cell; width: auto; text-align: left; border: 1px solid var(--border); padding: 8px 10px; justify-content: initial; }
+      .g-sec td::before { content: none; }
+    }
+    @media print { .g-top { display: none; } }
+  </style>
+</head>
+<body>
+
+<div class="g-top">
+  <div class="g-top-in">
+    <a class="back" href="./">← <span lang="en">Back to the app</span><span lang="bn">অ্যাপে ফিরে যান</span></a>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button type="button" data-set="en" aria-pressed="true">English</button>
+      <button type="button" data-set="bn" aria-pressed="false">বাংলা</button>
+    </div>
+  </div>
+</div>
+
+<main class="g-wrap">
+
+  <section class="hero">
+    <h1>📖 <span lang="en">User Guide</span><span lang="bn">ইউজার গাইড</span></h1>
+    <p lang="en">Everything you need to use Personal Result Tracker: how to add results, how the app calculates GPA and CGPA, and how to plan your next semester.</p>
+    <p lang="bn">Personal Result Tracker ব্যবহারের সব তথ্য এক জায়গায়: কীভাবে রেজাল্ট যোগ করবেন, অ্যাপ কীভাবে GPA ও CGPA হিসাব করে, এবং পরের সেমিস্টারের পরিকল্পনা কীভাবে করবেন।</p>
+  </section>
+
+  <nav class="card toc" aria-label="Contents">
+    <h2 style="font-size:1.1rem;margin-bottom:6px"><span lang="en">Contents</span><span lang="bn">সূচিপত্র</span></h2>
+    <ol>
+      <li><a href="#quick"><span lang="en">Quick start</span><span lang="bn">দ্রুত শুরু</span></a></li>
+      <li><a href="#signin"><span lang="en">Sign in and use on many devices</span><span lang="bn">সাইন ইন ও একাধিক ডিভাইসে ব্যবহার</span></a></li>
+      <li><a href="#dashboard"><span lang="en">The dashboard</span><span lang="bn">ড্যাশবোর্ড</span></a></li>
+      <li><a href="#add"><span lang="en">Adding and editing courses</span><span lang="bn">কোর্স যোগ ও এডিট করা</span></a></li>
+      <li><a href="#ongoing"><span lang="en">Ongoing courses</span><span lang="bn">চলমান (Ongoing) কোর্স</span></a></li>
+      <li><a href="#calc"><span lang="en">How the calculations work</span><span lang="bn">হিসাব কীভাবে হয়</span></a></li>
+      <li><a href="#example"><span lang="en">A worked example</span><span lang="bn">একটি উদাহরণ</span></a></li>
+      <li><a href="#analytics"><span lang="en">Analytics and planning tools</span><span lang="bn">Analytics ও পরিকল্পনার টুল</span></a></li>
+      <li><a href="#import"><span lang="en">Import, export and share</span><span lang="bn">Import, Export ও Share</span></a></li>
+      <li><a href="#more"><span lang="en">Profiles, search, theme, offline, install</span><span lang="bn">প্রোফাইল, সার্চ, থিম, অফলাইন, ইনস্টল</span></a></li>
+      <li><a href="#faq"><span lang="en">FAQ and troubleshooting</span><span lang="bn">সাধারণ প্রশ্ন ও সমস্যার সমাধান</span></a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 QUICK START -->
+  <section class="card g-sec" id="quick">
+    <h2><span lang="en">1. Quick start</span><span lang="bn">১. দ্রুত শুরু</span></h2>
+    <div lang="en">
+      <ol class="steps">
+        <li><b>Sign in</b> with your Google account.</li>
+        <li><b>Add your results.</b> Either paste your university <i>Result View</i> page once (Import &amp; Export tab), or add courses one by one in the <i>Add a course</i> form.</li>
+        <li><b>Check your CGPA</b> on the big card at the top. Pick the method you want: Attempted, Earned or Retake replaces.</li>
+        <li><b>Plan ahead</b> in the Analytics tab: forecast, target CGPA and final marks predictor.</li>
+      </ol>
+    </div>
+    <div lang="bn">
+      <ol class="steps">
+        <li>আপনার Google অ্যাকাউন্ট দিয়ে <b>সাইন ইন</b> করুন।</li>
+        <li><b>রেজাল্ট যোগ করুন।</b> হয় ইউনিভার্সিটির <i>Result View</i> পেজ একবার পেস্ট করুন (Import &amp; Export ট্যাব), অথবা <i>Add a course</i> ফর্মে একটি একটি করে কোর্স যোগ করুন।</li>
+        <li>উপরের বড় কার্ডে <b>CGPA দেখুন।</b> চাইলে Attempted, Earned বা Retake replaces পদ্ধতি বেছে নিন।</li>
+        <li>Analytics ট্যাবে <b>পরিকল্পনা করুন:</b> Forecast, Target CGPA ও Final marks predictor।</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2 SIGN IN -->
+  <section class="card g-sec" id="signin">
+    <h2><span lang="en">2. Sign in and use on many devices</span><span lang="bn">২. সাইন ইন ও একাধিক ডিভাইসে ব্যবহার</span></h2>
+    <div lang="en">
+      <ul>
+        <li>Press <b>Sign in with Google</b>. Your results are saved in your own private cloud space, so they are the same on your phone, tablet and laptop.</li>
+        <li>On another device, open the same website and sign in with the <b>same Google account</b>. Nothing else is needed.</li>
+        <li>The small label at the top shows the sync state (for example <i>Synced</i>). Changes made offline are uploaded when the internet is back.</li>
+        <li>Press <b>Logout</b> to sign out, for example on a shared computer.</li>
+      </ul>
+      <div class="tip">💡 Nobody else can read your results. Only a read-only share link that <i>you</i> create (see section 9) can be opened by others.</div>
+    </div>
+    <div lang="bn">
+      <ul>
+        <li><b>Sign in with Google</b> চাপুন। আপনার রেজাল্ট আপনার নিজস্ব ব্যক্তিগত ক্লাউড স্পেসে জমা হয়, তাই ফোন, ট্যাবলেট ও ল্যাপটপে একই তথ্য দেখা যায়।</li>
+        <li>অন্য ডিভাইসে একই ওয়েবসাইট খুলে <b>একই Google অ্যাকাউন্ট</b> দিয়ে সাইন ইন করুন। আর কিছু লাগে না।</li>
+        <li>উপরের ছোট লেবেলে সিঙ্কের অবস্থা দেখা যায় (যেমন <i>Synced</i>)। ইন্টারনেট না থাকলে করা পরিবর্তন নেট ফিরলে নিজে থেকে আপলোড হয়।</li>
+        <li>শেয়ার্ড কম্পিউটারে কাজ শেষে <b>Logout</b> চাপুন।</li>
+      </ul>
+      <div class="tip">💡 আপনার রেজাল্ট অন্য কেউ পড়তে পারে না। শুধু <i>আপনি</i> নিজে যে read-only শেয়ার লিংক বানাবেন (সেকশন ৯), সেটি অন্যরা খুলতে পারে।</div>
+    </div>
+  </section>
+
+  <!-- 3 DASHBOARD -->
+  <section class="card g-sec" id="dashboard">
+    <h2><span lang="en">3. The dashboard</span><span lang="bn">৩. ড্যাশবোর্ড</span></h2>
+    <div lang="en">
+      <p>The cards at the top update instantly whenever you change a course.</p>
+      <div class="tbl-scroll"><table>
+        <tr><th>Card</th><th>What it means</th></tr>
+        <tr><td><b>CGPA</b></td><td>Your cumulative GPA, using the method selected under it.</td></tr>
+        <tr><td><b>Degree progress</b></td><td>Completed credits out of the credits required for your degree, with a progress bar and credits left.</td></tr>
+        <tr><td><b>Credits required</b></td><td>The total credits of your degree (default 161). You can edit this number.</td></tr>
+        <tr><td><b>Credits attempted</b></td><td>All credits you have taken that have a result, and the number of courses.</td></tr>
+        <tr><td><b>Latest / Best semester GPA</b></td><td>GPA of your last graded semester (with the change from the one before) and your best semester.</td></tr>
+        <tr><td><b>To retake</b></td><td>Courses with F or Y that you have not retaken yet.</td></tr>
+        <tr><td><b>Ongoing</b></td><td>Courses of the running semester and their credits. They are <u>not</u> in the CGPA yet.</td></tr>
+      </table></div>
+      <p>There are three tabs: <b>Results</b> (add and edit courses), <b>Analytics</b> (graph and planning tools) and <b>Import &amp; Export</b>.</p>
+    </div>
+    <div lang="bn">
+      <p>কোর্সে কোনো পরিবর্তন করলেই উপরের কার্ডগুলো সঙ্গে সঙ্গে বদলে যায়।</p>
+      <div class="tbl-scroll"><table>
+        <tr><th>কার্ড</th><th>মানে</th></tr>
+        <tr><td><b>CGPA</b></td><td>নিচের নির্বাচিত পদ্ধতি অনুযায়ী আপনার CGPA।</td></tr>
+        <tr><td><b>Degree progress</b></td><td>ডিগ্রির প্রয়োজনীয় ক্রেডিটের মধ্যে কত ক্রেডিট সম্পন্ন হয়েছে; প্রগ্রেস বার ও বাকি ক্রেডিটসহ।</td></tr>
+        <tr><td><b>Credits required</b></td><td>ডিগ্রির মোট ক্রেডিট (ডিফল্ট ১৬১)। এই সংখ্যাটি আপনি বদলাতে পারবেন।</td></tr>
+        <tr><td><b>Credits attempted</b></td><td>যেসব কোর্সের রেজাল্ট আছে তার মোট ক্রেডিট ও কোর্সসংখ্যা।</td></tr>
+        <tr><td><b>Latest / Best semester GPA</b></td><td>সর্বশেষ গ্রেডেড সেমিস্টারের GPA (আগেরটির চেয়ে কতটা বাড়ল/কমল সহ) এবং সবচেয়ে ভালো সেমিস্টার।</td></tr>
+        <tr><td><b>To retake</b></td><td>F বা Y পাওয়া যেসব কোর্স এখনও রিটেক করা হয়নি।</td></tr>
+        <tr><td><b>Ongoing</b></td><td>চলমান সেমিস্টারের কোর্স ও ক্রেডিট। এগুলো এখনও CGPA-তে <u>ধরা হয় না</u>।</td></tr>
+      </table></div>
+      <p>তিনটি ট্যাব আছে: <b>Results</b> (কোর্স যোগ/এডিট), <b>Analytics</b> (গ্রাফ ও পরিকল্পনার টুল) এবং <b>Import &amp; Export</b>।</p>
+    </div>
+  </section>
+
+  <!-- 4 ADD -->
+  <section class="card g-sec" id="add">
+    <h2><span lang="en">4. Adding and editing courses</span><span lang="bn">৪. কোর্স যোগ ও এডিট করা</span></h2>
+    <div lang="en">
+      <h3>Add a course</h3>
+      <ol class="steps">
+        <li>Open the <b>Results</b> tab and fill <b>Semester</b> (for example <code>Autumn-2026</code>), <b>Course code</b> (<code>CCE-3601</code>), the title and the <b>Credit</b>.</li>
+        <li>Choose how to enter the result:
+          <ul>
+            <li><b>Enter marks</b>: type Mid /30, CT /10, Attendance /10 and Final /50. The grade is calculated for you and shown in the preview line.</li>
+            <li><b>I only know the grade</b>: pick the grade directly (A+ … F, or Y).</li>
+          </ul></li>
+        <li>Press <b>Add course</b>. It appears under its semester right away.</li>
+      </ol>
+      <h3>Edit, delete, rename</h3>
+      <ul>
+        <li><b>Edit</b> on a row loads the course into the form. Change it and press <b>Update course</b> (or <b>Cancel edit</b>).</li>
+        <li><b>Delete</b> on a row removes that course. <b>Delete</b> on a semester header removes the whole semester.</li>
+        <li><b>Rename</b> on a semester header changes the semester name for all its courses.</li>
+      </ul>
+      <div class="tip">💡 Semesters are sorted automatically by year and term (Spring, Summer, Autumn/Fall, Winter). Use names like <code>Spring-2026</code> so the order is correct.</div>
+      <div class="warn">⚠️ If you leave Credit empty, the app uses 3 credits. Write the real credit for sessional courses (for example 1 or 1.5).</div>
+    </div>
+    <div lang="bn">
+      <h3>কোর্স যোগ করা</h3>
+      <ol class="steps">
+        <li><b>Results</b> ট্যাবে <b>Semester</b> (যেমন <code>Autumn-2026</code>), <b>Course code</b> (<code>CCE-3601</code>), কোর্সের নাম এবং <b>Credit</b> লিখুন।</li>
+        <li>রেজাল্ট কীভাবে দেবেন তা বেছে নিন:
+          <ul>
+            <li><b>Enter marks</b>: Mid /30, CT /10, Attendance /10 ও Final /50 লিখুন। গ্রেড নিজে থেকে হিসাব হয়ে Preview লাইনে দেখা যাবে।</li>
+            <li><b>I only know the grade</b>: সরাসরি গ্রেড বেছে নিন (A+ … F, বা Y)।</li>
+          </ul></li>
+        <li><b>Add course</b> চাপুন। কোর্সটি সঙ্গে সঙ্গে ওই সেমিস্টারের নিচে দেখা যাবে।</li>
+      </ol>
+      <h3>এডিট, ডিলিট, রিনেম</h3>
+      <ul>
+        <li>সারির <b>Edit</b> চাপলে কোর্সটি ফর্মে চলে আসে। পরিবর্তন করে <b>Update course</b> চাপুন (বাতিল করতে <b>Cancel edit</b>)।</li>
+        <li>সারির <b>Delete</b> শুধু ওই কোর্স মুছে। সেমিস্টার হেডারের <b>Delete</b> পুরো সেমিস্টার মুছে ফেলে।</li>
+        <li>সেমিস্টার হেডারের <b>Rename</b> ওই সেমিস্টারের সব কোর্সের সেমিস্টার-নাম বদলে দেয়।</li>
+      </ul>
+      <div class="tip">💡 সেমিস্টার নিজে থেকে বছর ও টার্ম (Spring, Summer, Autumn/Fall, Winter) অনুযায়ী সাজানো হয়। ক্রম ঠিক রাখতে <code>Spring-2026</code> ধরনের নাম ব্যবহার করুন।</div>
+      <div class="warn">⚠️ Credit ফাঁকা রাখলে অ্যাপ ৩ ক্রেডিট ধরে নেয়। সেশনাল কোর্সের আসল ক্রেডিট (যেমন ১ বা ১.৫) লিখুন।</div>
+    </div>
+  </section>
+
+  <!-- 5 ONGOING -->
+  <section class="card g-sec" id="ongoing">
+    <h2><span lang="en">5. Ongoing courses</span><span lang="bn">৫. চলমান (Ongoing) কোর্স</span></h2>
+    <div lang="en">
+      <p>Use this for the semester that is still running and has no final result yet. Ongoing courses are kept as <b>notes</b>: you can store Mid, CT and Attendance, but they are <b>not counted</b> in GPA, CGPA, credits or exports until you enter the final result.</p>
+      <ul>
+        <li><b>Add one:</b> tick <b>Ongoing course</b> in the form. Enter the marks you have so far (or none).</li>
+        <li><b>Import all at once:</b> paste your <i>Course Status</i> page (see section 9). Its “On Going” courses are added as ongoing.</li>
+        <li><b>Mark a whole semester:</b> press <b>Mark ongoing</b> on the semester header. Its courses become ongoing and leave the CGPA. Their marks are kept.</li>
+        <li><b>Result published:</b> press <b>Enter result</b> on the row, fill the final marks (or the grade) and press <b>Save result</b>. The course now counts.</li>
+      </ul>
+      <div class="tip">💡 Ongoing courses are used in <b>Analytics → Ongoing courses forecast</b>, so you can see what your CGPA will be for any expected grades.</div>
+    </div>
+    <div lang="bn">
+      <p>যে সেমিস্টার এখনও চলছে এবং ফাইনাল রেজাল্ট আসেনি, তার জন্য এটি ব্যবহার করুন। Ongoing কোর্স <b>নোট</b> হিসেবে থাকে: Mid, CT ও Attendance রাখা যায়, কিন্তু ফাইনাল রেজাল্ট না দেওয়া পর্যন্ত GPA, CGPA, ক্রেডিট বা এক্সপোর্টে এগুলো <b>ধরা হয় না</b>।</p>
+      <ul>
+        <li><b>একটি যোগ করতে:</b> ফর্মে <b>Ongoing course</b> টিক দিন। এ পর্যন্ত পাওয়া মার্কস লিখুন (না থাকলে ফাঁকা রাখুন)।</li>
+        <li><b>একসঙ্গে ইমপোর্ট:</b> <i>Course Status</i> পেজ পেস্ট করুন (সেকশন ৯)। “On Going” কোর্সগুলো ongoing হিসেবে যোগ হবে।</li>
+        <li><b>পুরো সেমিস্টার ongoing করতে:</b> সেমিস্টার হেডারে <b>Mark ongoing</b> চাপুন। কোর্সগুলো ongoing হয়ে CGPA থেকে বাদ যাবে; মার্কস থেকে যাবে।</li>
+        <li><b>রেজাল্ট এলে:</b> সারির <b>Enter result</b> চাপুন, ফাইনাল মার্কস (বা গ্রেড) দিয়ে <b>Save result</b> চাপুন। কোর্সটি তখন হিসাবে ধরা হবে।</li>
+      </ul>
+      <div class="tip">💡 Ongoing কোর্স <b>Analytics → Ongoing courses forecast</b>-এ কাজে লাগে, যেখানে আপনি সম্ভাব্য গ্রেড দিয়ে CGPA কত হবে দেখতে পারবেন।</div>
+    </div>
+  </section>
+
+  <!-- 6 CALC -->
+  <section class="card g-sec" id="calc">
+    <h2><span lang="en">6. How the calculations work</span><span lang="bn">৬. হিসাব কীভাবে হয়</span></h2>
+
+    <div lang="en">
+      <h3>Step 1: marks to grade</h3>
+      <p>The total is Mid /30 + CT /10 + Attendance /10 + Final /50 = 100 marks. The total decides the grade and its grade point.</p>
+    </div>
+    <div lang="bn">
+      <h3>ধাপ ১: মার্কস থেকে গ্রেড</h3>
+      <p>মোট মার্কস = Mid /৩০ + CT /১০ + Attendance /১০ + Final /৫০ = ১০০। মোট মার্কস থেকেই গ্রেড ও গ্রেড পয়েন্ট ঠিক হয়।</p>
+    </div>
+    <div class="tbl-scroll"><table>
+      <tr><th>Total marks · মোট মার্কস</th><th>≥80</th><th>≥75</th><th>≥70</th><th>≥65</th><th>≥60</th><th>≥55</th><th>≥50</th><th>≥45</th><th>≥40</th><th>&lt;40</th></tr>
+      <tr><td><b>Grade · গ্রেড</b></td><td>A+</td><td>A</td><td>A-</td><td>B+</td><td>B</td><td>B-</td><td>C+</td><td>C</td><td>D</td><td>F</td></tr>
+      <tr><td><b>Point · পয়েন্ট</b></td><td>4.00</td><td>3.75</td><td>3.50</td><td>3.25</td><td>3.00</td><td>2.75</td><td>2.50</td><td>2.25</td><td>2.00</td><td>0.00</td></tr>
+    </table></div>
+    <p lang="en"><b>Y</b> (not allowed in the exam) counts as <b>0 points</b> and is not a pass. <b>F</b> is also not a pass. Every other grade is a pass.</p>
+    <p lang="bn"><b>Y</b> (পরীক্ষায় অনুমতি নেই) <b>০ পয়েন্ট</b> ধরা হয় এবং পাস নয়। <b>F</b>-ও পাস নয়। বাকি সব গ্রেড পাস।</p>
+    <div class="warn">
+      <span lang="en">⚠️ The scale and the marks split follow the IIUC rules. If your university is different, check your own result sheet.</span>
+      <span lang="bn">⚠️ গ্রেড স্কেল ও মার্কস বণ্টন IIUC-এর নিয়ম অনুযায়ী। আপনার ইউনিভার্সিটি আলাদা হলে নিজের রেজাল্ট শিটের সঙ্গে মিলিয়ে নিন।</span>
+    </div>
+
+    <div lang="en">
+      <h3>Step 2: course points</h3>
+      <div class="formula">Course points = Credit × Grade point
+Example: 3 credits × 3.25 (B+) = 9.75</div>
+      <h3>Step 3: semester GPA</h3>
+      <div class="formula">Semester GPA = Sum of course points ÷ Sum of credits (of that semester)</div>
+      <h3>Step 4: CGPA, three methods</h3>
+      <div class="tbl-scroll"><table>
+        <tr><th>Method</th><th>Formula</th><th>When to use</th></tr>
+        <tr><td><b>Attempted</b></td><td>All points ÷ all attempted credits</td><td>Same as the official result sheet. A retaken course keeps both attempts (the old F stays).</td></tr>
+        <tr><td><b>Earned</b></td><td>All points ÷ credits of <u>passed</u> courses only</td><td>Shows your CGPA on passed credits. F and Y credits are left out of the divisor.</td></tr>
+        <tr><td><b>Retake replaces</b></td><td>Only the newest attempt of each course counts</td><td>Shows your CGPA after improvement, as if the old attempt did not exist.</td></tr>
+      </table></div>
+      <div class="formula">Attempted CGPA = Σ(credit × point) ÷ Σ(attempted credits)
+Earned CGPA    = Σ(credit × point) ÷ Σ(credits of passed courses)
+Retake replaces = same as Attempted, after keeping only the latest attempt per course code</div>
+      <h3>Good to know</h3>
+      <ul>
+        <li><b>Retakes are detected by course code.</b> <code>CCE-1103</code>, <code>cce 1103</code> and <code>CCE1103</code> are the same course. The older attempt gets a “retaken” badge.</li>
+        <li><b>Y credits</b> count in that semester’s GPA, but are left out of the cumulative attempted credits. This matches the official sheet.</li>
+        <li><b>Degree progress</b> = completed (passed) credits ÷ required credits. Credits left = required − completed.</li>
+        <li><b>Ongoing courses</b> are not in any of these numbers.</li>
+        <li>Numbers are shown to 3 decimals (CGPA, GPA) so they match the official sheet.</li>
+      </ul>
+    </div>
+    <div lang="bn">
+      <h3>ধাপ ২: কোর্স পয়েন্ট</h3>
+      <div class="formula">Course points = Credit × Grade point
+উদাহরণ: ৩ ক্রেডিট × ৩.২৫ (B+) = ৯.৭৫</div>
+      <h3>ধাপ ৩: সেমিস্টার GPA</h3>
+      <div class="formula">Semester GPA = ওই সেমিস্টারের সব কোর্স পয়েন্টের যোগফল ÷ ওই সেমিস্টারের মোট ক্রেডিট</div>
+      <h3>ধাপ ৪: CGPA, তিনটি পদ্ধতি</h3>
+      <div class="tbl-scroll"><table>
+        <tr><th>পদ্ধতি</th><th>সূত্র</th><th>কখন ব্যবহার করবেন</th></tr>
+        <tr><td><b>Attempted</b></td><td>সব পয়েন্ট ÷ সব attempted ক্রেডিট</td><td>অফিশিয়াল রেজাল্ট শিটের মতো। রিটেক করলে দুই বারই গণনায় থাকে (পুরনো F-ও থাকে)।</td></tr>
+        <tr><td><b>Earned</b></td><td>সব পয়েন্ট ÷ শুধু <u>পাস করা</u> কোর্সের ক্রেডিট</td><td>পাস করা ক্রেডিটের ভিত্তিতে CGPA দেখায়। F ও Y-এর ক্রেডিট ভাগফলে ধরা হয় না।</td></tr>
+        <tr><td><b>Retake replaces</b></td><td>প্রতিটি কোর্সের শুধু সর্বশেষ চেষ্টা ধরা হয়</td><td>উন্নতির পর CGPA কত হলো দেখায়, যেন পুরনো চেষ্টাটি ছিলই না।</td></tr>
+      </table></div>
+      <div class="formula">Attempted CGPA = Σ(ক্রেডিট × পয়েন্ট) ÷ Σ(attempted ক্রেডিট)
+Earned CGPA    = Σ(ক্রেডিট × পয়েন্ট) ÷ Σ(পাস করা কোর্সের ক্রেডিট)
+Retake replaces = Attempted-এর মতোই, তবে প্রতিটি কোর্স কোডের শুধু শেষ চেষ্টা রেখে</div>
+      <h3>জেনে রাখুন</h3>
+      <ul>
+        <li><b>রিটেক ধরা হয় কোর্স কোড দেখে।</b> <code>CCE-1103</code>, <code>cce 1103</code> ও <code>CCE1103</code> একই কোর্স। পুরনো চেষ্টায় “retaken” ব্যাজ বসে।</li>
+        <li><b>Y-এর ক্রেডিট</b> ওই সেমিস্টারের GPA-তে ধরা হয়, কিন্তু cumulative attempted ক্রেডিট থেকে বাদ যায়। অফিশিয়াল শিটও এমন করে।</li>
+        <li><b>Degree progress</b> = সম্পন্ন (পাস) ক্রেডিট ÷ প্রয়োজনীয় ক্রেডিট। বাকি ক্রেডিট = প্রয়োজনীয় − সম্পন্ন।</li>
+        <li><b>Ongoing কোর্স</b> এই কোনো হিসাবেই থাকে না।</li>
+        <li>অফিশিয়াল শিটের সঙ্গে মেলাতে GPA ও CGPA তিন দশমিক পর্যন্ত দেখানো হয়।</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7 EXAMPLE -->
+  <section class="card g-sec" id="example">
+    <h2><span lang="en">7. A worked example</span><span lang="bn">৭. একটি উদাহরণ</span></h2>
+    <div lang="en">
+      <p>One semester with four courses:</p>
+    </div>
+    <div lang="bn">
+      <p>এক সেমিস্টারে চারটি কোর্স:</p>
+    </div>
+    <div class="tbl-scroll"><table>
+      <tr><th>Course</th><th>Credit</th><th>Grade</th><th>Point</th><th>Credit × Point</th></tr>
+      <tr><td>Course A</td><td>3</td><td>A</td><td>3.75</td><td>11.25</td></tr>
+      <tr><td>Course B</td><td>3</td><td>B+</td><td>3.25</td><td>9.75</td></tr>
+      <tr><td>Lab C</td><td>1.5</td><td>A+</td><td>4.00</td><td>6.00</td></tr>
+      <tr><td>Course D</td><td>3</td><td>F</td><td>0.00</td><td>0.00</td></tr>
+      <tr><th>Total</th><th>10.5</th><th></th><th></th><th>27.00</th></tr>
+    </table></div>
+    <div lang="en">
+      <div class="formula">Semester GPA      = 27.00 ÷ 10.5 = 2.571
+Attempted CGPA    = 27.00 ÷ 10.5 = 2.571
+Earned CGPA       = 27.00 ÷ 7.5  = 3.600     (passed credits: 3 + 3 + 1.5 = 7.5)</div>
+      <p>Next semester you retake Course D and get <b>B (3.00)</b>. That adds 3 × 3.00 = 9.00 points and 3 credits.</p>
+      <div class="formula">Attempted CGPA        = (27 + 9) ÷ (10.5 + 3) = 36 ÷ 13.5 = 2.667   (the old F stays)
+Earned CGPA           = 36 ÷ (7.5 + 3)        = 36 ÷ 10.5 = 3.429
+Retake replaces CGPA  = 36 ÷ 10.5 (F removed) = 3.429</div>
+      <p><b>From marks to grade:</b> Mid 24 + CT 8 + Attendance 9 + Final 38 = <b>79</b> → grade <b>A</b> (75 or more) → 3.75.</p>
+    </div>
+    <div lang="bn">
+      <div class="formula">Semester GPA      = ২৭.০০ ÷ ১০.৫ = ২.৫৭১
+Attempted CGPA    = ২৭.০০ ÷ ১০.৫ = ২.৫৭১
+Earned CGPA       = ২৭.০০ ÷ ৭.৫  = ৩.৬০০     (পাস করা ক্রেডিট: ৩ + ৩ + ১.৫ = ৭.৫)</div>
+      <p>পরের সেমিস্টারে Course D রিটেক করে <b>B (৩.০০)</b> পেলেন। এতে যোগ হয় ৩ × ৩.০০ = ৯.০০ পয়েন্ট এবং ৩ ক্রেডিট।</p>
+      <div class="formula">Attempted CGPA        = (২৭ + ৯) ÷ (১০.৫ + ৩) = ৩৬ ÷ ১৩.৫ = ২.৬৬৭   (পুরনো F থেকে যায়)
+Earned CGPA           = ৩৬ ÷ (৭.৫ + ৩)        = ৩৬ ÷ ১০.৫ = ৩.৪২৯
+Retake replaces CGPA  = ৩৬ ÷ ১০.৫ (F বাদ)      = ৩.৪২৯</div>
+      <p><b>মার্কস থেকে গ্রেড:</b> Mid ২৪ + CT ৮ + Attendance ৯ + Final ৩৮ = <b>৭৯</b> → গ্রেড <b>A</b> (৭৫ বা তার বেশি) → ৩.৭৫।</p>
+    </div>
+  </section>
+
+  <!-- 8 ANALYTICS -->
+  <section class="card g-sec" id="analytics">
+    <h2><span lang="en">8. Analytics and planning tools</span><span lang="bn">৮. Analytics ও পরিকল্পনার টুল</span></h2>
+    <div lang="en">
+      <h3>CGPA progress graph</h3>
+      <p>A line chart of each graded semester’s GPA and your CGPA over time (the CGPA line follows the selected method). Press <b>Show table</b> to see the same numbers as a table.</p>
+
+      <h3>Ongoing courses forecast</h3>
+      <p>Appears when you have ongoing courses. Choose the grade you expect in each course (or one grade for all) and the app shows:</p>
+      <ul>
+        <li>this semester’s GPA if you get those grades, and</li>
+        <li>your CGPA before → after, and completed credits before → after.</li>
+      </ul>
+      <p>The <b>So far</b> column is Mid + CT + Attendance (out of 50). <b>Final needed</b> shows the Final marks required for your expected grade, or “already secured” / “not reachable”. <b>Predict</b> opens the predictor for that course. Default expected grade is B+.</p>
+      <div class="formula">Final needed = (Minimum total for the grade) − (Mid + CT + Attendance)
+Example: A needs 75 total. You have 41. Final needed = 75 − 41 = 34 out of 50.</div>
+
+      <h3>Target CGPA</h3>
+      <p>Enter the CGPA you want and the credits you expect next semester. The app tells you the GPA you need, assuming the new courses are passed.</p>
+      <div class="formula">Needed GPA = (Target × (Credits so far + Next credits) − Points so far) ÷ Next credits
+Best possible CGPA = (Points so far + 4 × Next credits) ÷ (Credits so far + Next credits)</div>
+      <p><b>Example:</b> 30 credits, 90 points (CGPA 3.00), next semester 15 credits, target 3.20.<br>
+      Needed GPA = (3.20 × 45 − 90) ÷ 15 = <b>3.60</b>. Best possible = (90 + 60) ÷ 45 = 3.33.</p>
+      <p>If the needed GPA is above 4.00, the app says the target is <b>not possible in one semester</b> and shows how many semesters at straight 4.00 it would take, and the average GPA needed over your remaining credits. The small table below shows what your CGPA becomes for next-semester GPAs from 2.50 to 4.00.</p>
+
+      <h3>Final marks predictor</h3>
+      <p>Enter the Mid, CT and Attendance you already have. A table lists, for every grade, the total marks needed and the Final marks needed. A grade shows <b>Already secured</b> if you already have enough, and <b>Not possible</b> if even 50/50 in the Final is not enough.</p>
+
+      <h3>Retake &amp; improvement</h3>
+      <p>Lists F, Y and D courses that you have not retaken. Choose the grade you think you will get (“If I get”), and the app shows your CGPA before → after for each course. <b>Add retake</b> opens the form with the course filled in.</p>
+    </div>
+    <div lang="bn">
+      <h3>CGPA progress গ্রাফ</h3>
+      <p>প্রতিটি গ্রেডেড সেমিস্টারের GPA এবং সময়ের সঙ্গে CGPA-র লাইন চার্ট (CGPA লাইনটি নির্বাচিত পদ্ধতি অনুযায়ী)। একই সংখ্যা টেবিলে দেখতে <b>Show table</b> চাপুন।</p>
+
+      <h3>Ongoing courses forecast</h3>
+      <p>Ongoing কোর্স থাকলে এটি দেখা যায়। প্রতিটি কোর্সে (বা সবগুলোতে একসঙ্গে) যে গ্রেড পেতে পারেন তা বেছে নিন। অ্যাপ দেখাবে:</p>
+      <ul>
+        <li>ওই গ্রেড পেলে এই সেমিস্টারের GPA কত হবে, এবং</li>
+        <li>আপনার CGPA আগে → পরে, আর সম্পন্ন ক্রেডিট আগে → পরে।</li>
+      </ul>
+      <p><b>So far</b> কলাম = Mid + CT + Attendance (৫০-এর মধ্যে)। <b>Final needed</b> কলামে প্রত্যাশিত গ্রেডের জন্য ফাইনালে কত মার্কস লাগবে তা দেখায়, অথবা “already secured” / “not reachable”। <b>Predict</b> চাপলে ওই কোর্সের জন্য predictor খোলে। ডিফল্ট প্রত্যাশিত গ্রেড B+।</p>
+      <div class="formula">Final needed = (গ্রেডের ন্যূনতম মোট মার্কস) − (Mid + CT + Attendance)
+উদাহরণ: A পেতে মোট ৭৫ লাগে। আপনার আছে ৪১। Final needed = ৭৫ − ৪১ = ৫০-এর মধ্যে ৩৪।</div>
+
+      <h3>Target CGPA</h3>
+      <p>যে CGPA চান এবং পরের সেমিস্টারে সম্ভাব্য ক্রেডিট লিখুন। নতুন কোর্সগুলো পাস করবেন ধরে অ্যাপ বলে দেয় কত GPA লাগবে।</p>
+      <div class="formula">Needed GPA = (Target × (এ পর্যন্ত ক্রেডিট + পরের ক্রেডিট) − এ পর্যন্ত পয়েন্ট) ÷ পরের ক্রেডিট
+সর্বোচ্চ সম্ভব CGPA = (এ পর্যন্ত পয়েন্ট + ৪ × পরের ক্রেডিট) ÷ (এ পর্যন্ত ক্রেডিট + পরের ক্রেডিট)</div>
+      <p><b>উদাহরণ:</b> ৩০ ক্রেডিট, ৯০ পয়েন্ট (CGPA ৩.০০), পরের সেমিস্টারে ১৫ ক্রেডিট, টার্গেট ৩.২০।<br>
+      Needed GPA = (৩.২০ × ৪৫ − ৯০) ÷ ১৫ = <b>৩.৬০</b>। সর্বোচ্চ সম্ভব = (৯০ + ৬০) ÷ ৪৫ = ৩.৩৩।</p>
+      <p>Needed GPA ৪.০০-এর বেশি হলে অ্যাপ জানায় টার্গেট <b>এক সেমিস্টারে সম্ভব নয়</b>, এবং ৪.০০ করে পেলে কত সেমিস্টার লাগবে ও বাকি ক্রেডিটে গড়ে কত GPA লাগবে তাও দেখায়। নিচের ছোট টেবিলে পরের সেমিস্টারে ২.৫০ থেকে ৪.০০ GPA হলে CGPA কত হবে দেখানো হয়।</p>
+
+      <h3>Final marks predictor</h3>
+      <p>আপনার কাছে থাকা Mid, CT ও Attendance লিখুন। টেবিলে প্রতিটি গ্রেডের জন্য মোট কত মার্কস ও ফাইনালে কত মার্কস লাগবে তা দেখা যাবে। যথেষ্ট মার্কস থাকলে <b>Already secured</b>, আর ফাইনালে ৫০/৫০ পেলেও না হলে <b>Not possible</b> দেখায়।</p>
+
+      <h3>Retake &amp; improvement</h3>
+      <p>রিটেক করা হয়নি এমন F, Y ও D কোর্সের তালিকা। “If I get” থেকে সম্ভাব্য গ্রেড বেছে নিলে প্রতিটি কোর্সের জন্য CGPA আগে → পরে দেখা যায়। <b>Add retake</b> চাপলে কোর্সের তথ্যসহ ফর্ম খুলে যায়।</p>
+    </div>
+  </section>
+
+  <!-- 9 IMPORT -->
+  <section class="card g-sec" id="import">
+    <h2><span lang="en">9. Import, export and share</span><span lang="bn">৯. Import, Export ও Share</span></h2>
+    <div lang="en">
+      <h3>Import from the university website</h3>
+      <ol class="steps">
+        <li>Open your university <b>Result View</b> page (finished semesters) or <b>Course Status</b> page (running semester).</li>
+        <li>Select everything (<kbd>Ctrl</kbd> + <kbd>A</kbd>) and copy (<kbd>Ctrl</kbd> + <kbd>C</kbd>). On a phone, long-press, select all, copy.</li>
+        <li>In the app open <b>Import &amp; Export</b>, paste into the box and press <b>Read result</b>.</li>
+        <li>Check the preview. Choose <b>Add to this profile (skip courses already there)</b>, or <b>Replace</b> the existing courses it covers.</li>
+        <li>Press the import button to save. A message tells you how many courses were added or skipped.</li>
+      </ol>
+      <ul>
+        <li><b>Result View</b> pages give graded courses with grades. <b>Course Status</b> pages give the “On Going” courses, which are saved as ongoing (no grade).</li>
+        <li>Lines that look like courses but cannot be read are counted and reported in the preview, so you can add them by hand.</li>
+        <li>Replace mode asks for confirmation and deletes only what it replaces.</li>
+      </ul>
+      <h3>Download</h3>
+      <ul>
+        <li><b>Download PDF:</b> a printable result sheet with semester tables and your CGPA.</li>
+        <li><b>Download Excel / CSV:</b> a file you can open in Excel or Google Sheets.</li>
+        <li>Ongoing courses are <u>not</u> in the PDF. The CSV lists them in a separate “Ongoing (not counted)” part.</li>
+      </ul>
+      <h3>Share (read-only)</h3>
+      <ol class="steps">
+        <li>In <b>Import &amp; Export → Share</b>, tick <b>Hide marks (show only grades)</b> if you want.</li>
+        <li>Press <b>Create link</b> and then <b>Copy</b>. Send the link to a friend or family member.</li>
+        <li>They can only look. They cannot edit anything and do not need to sign in.</li>
+      </ol>
+      <ul>
+        <li>The link shows a <b>snapshot</b> from the moment you pressed it. After you change results, press <b>Update link</b> to refresh it.</li>
+        <li>Press <b>Stop sharing</b> to switch the link off.</li>
+        <li>Ongoing courses are never shared.</li>
+      </ul>
+    </div>
+    <div lang="bn">
+      <h3>ইউনিভার্সিটির ওয়েবসাইট থেকে Import</h3>
+      <ol class="steps">
+        <li>ইউনিভার্সিটির <b>Result View</b> পেজ (শেষ হওয়া সেমিস্টার) অথবা <b>Course Status</b> পেজ (চলমান সেমিস্টার) খুলুন।</li>
+        <li>সব সিলেক্ট (<kbd>Ctrl</kbd> + <kbd>A</kbd>) করে কপি (<kbd>Ctrl</kbd> + <kbd>C</kbd>) করুন। ফোনে লং-প্রেস করে Select all, তারপর Copy।</li>
+        <li>অ্যাপে <b>Import &amp; Export</b> খুলে বক্সে পেস্ট করুন এবং <b>Read result</b> চাপুন।</li>
+        <li>Preview দেখে নিন। <b>Add to this profile (skip courses already there)</b> বা বিদ্যমান কোর্স <b>Replace</b> করার অপশন বেছে নিন।</li>
+        <li>Import বাটন চেপে সেভ করুন। কতটি কোর্স যোগ হলো বা বাদ গেল তা একটি বার্তায় জানানো হবে।</li>
+      </ol>
+      <ul>
+        <li><b>Result View</b> পেজ থেকে গ্রেডসহ কোর্স আসে। <b>Course Status</b> পেজ থেকে “On Going” কোর্স আসে, যেগুলো ongoing (গ্রেড ছাড়া) হিসেবে সেভ হয়।</li>
+        <li>কোর্সের মতো দেখতে কিন্তু পড়া যায়নি এমন লাইন Preview-তে গুনে দেখানো হয়, যাতে হাতে যোগ করে নিতে পারেন।</li>
+        <li>Replace মোডে নিশ্চিত করতে বলা হয় এবং শুধু যা replace হচ্ছে তা-ই মুছে যায়।</li>
+      </ul>
+      <h3>Download</h3>
+      <ul>
+        <li><b>Download PDF:</b> সেমিস্টার টেবিল ও CGPA সহ প্রিন্ট করার মতো রেজাল্ট শিট।</li>
+        <li><b>Download Excel / CSV:</b> Excel বা Google Sheets-এ খোলার ফাইল।</li>
+        <li>Ongoing কোর্স PDF-এ <u>থাকে না</u>। CSV-তে আলাদা “Ongoing (not counted)” অংশে থাকে।</li>
+      </ul>
+      <h3>Share (read-only)</h3>
+      <ol class="steps">
+        <li><b>Import &amp; Export → Share</b>-এ চাইলে <b>Hide marks (show only grades)</b> টিক দিন।</li>
+        <li><b>Create link</b> চেপে <b>Copy</b> করুন। লিংকটি বন্ধু বা পরিবারের কাউকে পাঠান।</li>
+        <li>তারা শুধু দেখতে পারবে। কিছু এডিট করতে পারবে না এবং সাইন ইনও লাগবে না।</li>
+      </ol>
+      <ul>
+        <li>লিংকে আপনি যে মুহূর্তে চেপেছেন তখনকার <b>স্ন্যাপশট</b> দেখা যায়। রেজাল্ট বদলালে <b>Update link</b> চেপে নতুন করুন।</li>
+        <li>লিংক বন্ধ করতে <b>Stop sharing</b> চাপুন।</li>
+        <li>Ongoing কোর্স কখনও শেয়ার হয় না।</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10 MORE -->
+  <section class="card g-sec" id="more">
+    <h2><span lang="en">10. Profiles, search, theme, offline, install</span><span lang="bn">১০. প্রোফাইল, সার্চ, থিম, অফলাইন, ইনস্টল</span></h2>
+    <div lang="en">
+      <h3>Profiles</h3>
+      <p>Use the <b>Profile</b> drop-down to keep separate sets of results (for example yourself and a sibling) in one account. <b>＋ New</b> creates one, <b>Rename</b> renames it and <b>Delete</b> removes it with all its courses. Each profile has its own CGPA, credits required and share link.</p>
+      <h3>Search and sort</h3>
+      <p>In the Results tab, type in the search box to filter by course code, title or grade. Use <b>Sort</b> to change the order of courses inside each semester.</p>
+      <h3>Dark / light mode</h3>
+      <p>Press the ☀️ / 🌙 button at the top right. Your choice is remembered on that device.</p>
+      <h3>Phone view</h3>
+      <p>On small screens the tables turn into cards, so every value is easy to read without zooming.</p>
+      <h3>Offline use</h3>
+      <p>After the first visit, the app opens without internet. You can view and add courses offline; they sync the next time you are online.</p>
+      <h3>Install as an app</h3>
+      <div class="tbl-scroll"><table>
+        <tr><th>Device</th><th>Steps</th></tr>
+        <tr><td>Android (Chrome)</td><td>Tap <b>Install app</b> at the top, or Chrome menu ⋮ → <i>Install app</i>.</td></tr>
+        <tr><td>iPhone / iPad (Safari)</td><td>Open in <b>Safari</b> → <b>Share</b> → <b>Add to Home Screen</b>.</td></tr>
+        <tr><td>Windows / Mac (Chrome, Edge)</td><td>Click the install icon in the address bar, or the <b>Install app</b> button. If it says “Open in app”, it is already installed.</td></tr>
+      </table></div>
+      <p class="muted">On iPhone an installed app keeps its own storage, so you may need to sign in once more.</p>
+    </div>
+    <div lang="bn">
+      <h3>প্রোফাইল</h3>
+      <p><b>Profile</b> ড্রপডাউন দিয়ে একই অ্যাকাউন্টে আলাদা আলাদা রেজাল্ট সেট রাখতে পারেন (যেমন নিজের ও ভাই/বোনের)। <b>＋ New</b> নতুন বানায়, <b>Rename</b> নাম বদলায়, <b>Delete</b> প্রোফাইল ও তার সব কোর্স মুছে দেয়। প্রতিটি প্রোফাইলের নিজস্ব CGPA, প্রয়োজনীয় ক্রেডিট ও শেয়ার লিংক আছে।</p>
+      <h3>সার্চ ও সর্ট</h3>
+      <p>Results ট্যাবে সার্চ বক্সে কোর্স কোড, নাম বা গ্রেড লিখে ফিল্টার করুন। <b>Sort</b> দিয়ে প্রতিটি সেমিস্টারের ভেতরে কোর্সের ক্রম বদলান।</p>
+      <h3>ডার্ক / লাইট মোড</h3>
+      <p>উপরে ডানের ☀️ / 🌙 বাটন চাপুন। আপনার পছন্দ ওই ডিভাইসে মনে থাকে।</p>
+      <h3>ফোনের ভিউ</h3>
+      <p>ছোট স্ক্রিনে টেবিল কার্ডে বদলে যায়, তাই জুম না করেই সব সহজে পড়া যায়।</p>
+      <h3>অফলাইন ব্যবহার</h3>
+      <p>একবার খোলার পর ইন্টারনেট ছাড়াও অ্যাপ খোলে। অফলাইনে কোর্স দেখা ও যোগ করা যায়; পরের বার অনলাইনে এলে সিঙ্ক হয়।</p>
+      <h3>অ্যাপ হিসেবে ইনস্টল</h3>
+      <div class="tbl-scroll"><table>
+        <tr><th>ডিভাইস</th><th>ধাপ</th></tr>
+        <tr><td>Android (Chrome)</td><td>উপরে <b>Install app</b> চাপুন, অথবা Chrome মেনু ⋮ → <i>Install app</i>।</td></tr>
+        <tr><td>iPhone / iPad (Safari)</td><td><b>Safari</b>-তে খুলে → <b>Share</b> → <b>Add to Home Screen</b>।</td></tr>
+        <tr><td>Windows / Mac (Chrome, Edge)</td><td>অ্যাড্রেস বারের ইনস্টল আইকনে ক্লিক করুন, অথবা <b>Install app</b> বাটন। “Open in app” লেখা থাকলে আগেই ইনস্টল করা আছে।</td></tr>
+      </table></div>
+      <p class="muted">iPhone-এ ইনস্টল করা অ্যাপের স্টোরেজ আলাদা, তাই আরেকবার সাইন ইন করতে হতে পারে।</p>
+    </div>
+  </section>
+
+  <!-- 11 FAQ -->
+  <section class="card g-sec" id="faq">
+    <h2><span lang="en">11. FAQ and troubleshooting</span><span lang="bn">১১. সাধারণ প্রশ্ন ও সমস্যার সমাধান</span></h2>
+    <div lang="en">
+      <h3>My CGPA does not match the university sheet.</h3>
+      <ul>
+        <li>Select the <b>Attempted</b> method. It follows the official sheet.</li>
+        <li>Check that every course has the right <b>credit</b> and <b>grade</b>, and that there are no extra test courses.</li>
+        <li>Remove duplicates. Importing again with “skip courses already there” does not create duplicates.</li>
+        <li>Courses of the running semester must be <b>Ongoing</b> (press <b>Mark ongoing</b> on that semester) or they are counted, with an F if no grade was set.</li>
+      </ul>
+      <h3>A course I retook still shows the old F.</h3>
+      <p>That is correct in the <b>Attempted</b> and <b>Earned</b> views (both attempts are in the totals). Switch to <b>Retake replaces</b> to see the improved CGPA. Make sure both attempts use the same course code.</p>
+      <h3>The Install button does not appear.</h3>
+      <p>It appears only on browsers that support it and only if the app is not installed yet. On desktop Chrome, check the address bar for “Open in app”. On iPhone use Safari → Share → Add to Home Screen.</p>
+      <h3>Google sign-in does not work.</h3>
+      <p>Allow pop-ups for the site and try again. Inside an installed app, if sign-in fails, open the website in the normal browser and sign in there first.</p>
+      <h3>I do not see my latest changes on another device.</h3>
+      <p>Check the sync label at the top. Make sure both devices are online and use the same Google account, then refresh the page.</p>
+      <h3>Is my data safe?</h3>
+      <p>Your results are stored in your own account area and only you can read them. A share link is a snapshot that anyone with the link can open; press <b>Stop sharing</b> to turn it off.</p>
+      <h3>Does it work for any university?</h3>
+      <p>The calculation rules and the import reader follow IIUC. Other universities can use it with manual entry if their grade scale is the same; otherwise results may differ.</p>
+    </div>
+    <div lang="bn">
+      <h3>আমার CGPA ইউনিভার্সিটির শিটের সঙ্গে মিলছে না।</h3>
+      <ul>
+        <li><b>Attempted</b> পদ্ধতি বেছে নিন। এটি অফিশিয়াল শিট অনুসরণ করে।</li>
+        <li>প্রতিটি কোর্সের <b>credit</b> ও <b>grade</b> ঠিক আছে কিনা এবং কোনো বাড়তি টেস্ট কোর্স আছে কিনা দেখুন।</li>
+        <li>ডুপ্লিকেট থাকলে মুছুন। “skip courses already there” দিয়ে আবার import করলে ডুপ্লিকেট হয় না।</li>
+        <li>চলমান সেমিস্টারের কোর্স অবশ্যই <b>Ongoing</b> রাখুন (ওই সেমিস্টারে <b>Mark ongoing</b> চাপুন)। নইলে গ্রেড না থাকলে F ধরে হিসাব হয়ে যায়।</li>
+      </ul>
+      <h3>রিটেক করা কোর্সে পুরনো F এখনও দেখাচ্ছে।</h3>
+      <p><b>Attempted</b> ও <b>Earned</b> ভিউতে এটাই সঠিক (দুই চেষ্টাই মোটের মধ্যে থাকে)। উন্নত CGPA দেখতে <b>Retake replaces</b>-এ যান। দুই চেষ্টায় একই কোর্স কোড ব্যবহার করেছেন কিনা নিশ্চিত করুন।</p>
+      <h3>Install বাটন দেখা যাচ্ছে না।</h3>
+      <p>বাটনটি শুধু সমর্থিত ব্রাউজারে এবং অ্যাপ ইনস্টল না থাকলে দেখা যায়। ডেস্কটপ Chrome-এ অ্যাড্রেস বারে “Open in app” আছে কিনা দেখুন। iPhone-এ Safari → Share → Add to Home Screen ব্যবহার করুন।</p>
+      <h3>Google সাইন ইন হচ্ছে না।</h3>
+      <p>সাইটের জন্য pop-up অনুমতি দিয়ে আবার চেষ্টা করুন। ইনস্টল করা অ্যাপে সাইন ইন না হলে আগে সাধারণ ব্রাউজারে ওয়েবসাইট খুলে সাইন ইন করুন।</p>
+      <h3>অন্য ডিভাইসে সর্বশেষ পরিবর্তন দেখছি না।</h3>
+      <p>উপরের সিঙ্ক লেবেল দেখুন। দুই ডিভাইসই অনলাইনে আছে এবং একই Google অ্যাকাউন্ট ব্যবহার হচ্ছে কিনা দেখে পেজ রিফ্রেশ করুন।</p>
+      <h3>আমার ডেটা কি নিরাপদ?</h3>
+      <p>আপনার রেজাল্ট আপনার নিজস্ব অ্যাকাউন্ট এরিয়ায় থাকে এবং শুধু আপনি পড়তে পারেন। শেয়ার লিংক একটি স্ন্যাপশট, যা লিংক থাকলে যে কেউ খুলতে পারে; বন্ধ করতে <b>Stop sharing</b> চাপুন।</p>
+      <h3>এটি কি যেকোনো ইউনিভার্সিটির জন্য কাজ করে?</h3>
+      <p>হিসাবের নিয়ম ও import রিডার IIUC অনুসারে তৈরি। অন্য ইউনিভার্সিটির গ্রেড স্কেল একই হলে হাতে এন্ট্রি দিয়ে ব্যবহার করা যায়; নইলে ফলাফল আলাদা হতে পারে।</p>
+    </div>
+  </section>
+
+  <footer class="g-foot">
+    <p lang="en">Made by <a href="https://github.com/abdurrahmancce" target="_blank" rel="noopener">Abdur Rahman</a> · <a href="./">Open the app</a></p>
+    <p lang="bn">তৈরি করেছেন <a href="https://github.com/abdurrahmancce" target="_blank" rel="noopener">Abdur Rahman</a> · <a href="./">অ্যাপ খুলুন</a></p>
+  </footer>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btns = document.querySelectorAll(".lang-switch button");
+    function set(l) {
+      root.dataset.lang = l; root.lang = l;
+      btns.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === l)); });
+      try { localStorage.setItem("rt_guide_lang", l); } catch (e) {}
+    }
+    btns.forEach(function (b) { b.addEventListener("click", function () { set(b.dataset.set); }); });
+    set(root.dataset.lang || "en");
+  })();
+</script>
+</body>
+</html>
