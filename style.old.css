@@ -1,0 +1,241 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #f4f6f9;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1000px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+form input, form button {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  flex: 1 1 150px;
+}
+
+form button {
+  background: teal;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+form button:hover {
+  background: darkcyan;
+}
+
+/* CGPA Card with glow */
+.cgpa-card {
+  text-align: center;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  animation: glow 2s infinite alternate;
+  transition: transform 0.3s, box-shadow 0.3s, background 0.3s, color 0.3s;
+}
+
+.cgpa-card:hover {
+  transform: scale(1.05);
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+  50% { box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+  100% { box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+thead {
+  background: linear-gradient(90deg, #4CAF50, #2E8B57);
+  color: white;
+}
+
+th, td {
+  padding: 12px;
+  text-align: center;
+}
+
+tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+tbody tr:hover {
+  background: #d1f0f0;
+  transition: 0.3s;
+}
+
+button.edit, button.delete {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+}
+
+button.edit {
+  background: orange;
+}
+
+button.delete {
+  background: rgb(8, 150, 103);
+}
+
+/* Login + user bar */
+[hidden] { display: none !important; }
+
+.login-screen {
+  text-align: center;
+  padding: 40px 10px;
+}
+
+.login-screen p {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.google-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: box-shadow 0.3s;
+}
+
+.google-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.google-btn:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.user-bar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.user-bar button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: #f4f6f9;
+  cursor: pointer;
+}
+
+.user-bar button:hover {
+  background: #e3e8ee;
+}
+
+/* Grade row colors */
+.grade-Aplus { background-color: #51ef56; }
+.grade-A { background-color: #a5d6a7; }
+.grade-Aminus { background-color: #81c784; }
+.grade-Bplus { background-color: #fff59d; }
+.grade-B { background-color: #ffe082; }
+.grade-Bminus { background-color: #ffcc80; }
+.grade-Cplus { background-color: #ffab91; }
+.grade-C { background-color: #ff8a65; }
+.grade-D { background-color: #f8aa92; }
+.grade-F { background-color: #fc5c5c; }
+
+@media(max-width: 768px) {
+  form {
+    flex-direction: column;
+  }
+}
+
+.about-me-card {
+  margin-top: 30px;
+  padding: 15px 20px;
+  background: #c5dee1;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.about-me-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+
+.about-me-card h3 {
+  margin-bottom: 10px;
+  color: #00796b;
+  font-size: 1.4rem;
+}
+
+.about-me-card .icon-link {
+  text-decoration: none;
+  color: teal;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.3s;
+}
+
+.about-me-card .icon-link:hover {
+  color: black;
+}
+
+.about-me-card .icon {
+  width: 20px;
+  height: 20px;
+}

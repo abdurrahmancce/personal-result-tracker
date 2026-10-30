@@ -157,6 +157,8 @@ kbd {
 }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn { padding: 6px 10px; font-size: 1.05rem; line-height: 1; }
+.install-btn { background: var(--brand); color: #fff; border-color: transparent; font-weight: 600; white-space: nowrap; }
+.install-btn:hover { filter: brightness(1.1); }
 
 .sync {
   font-size: 0.8rem;
@@ -593,5 +595,5 @@ button.result:hover { background: #1d4ed8; }
 }
 
 @media print {
-  .tabs, .user-bar, .toolbar, .add-card, .about-me-card, .topbar .top-actions { display: none !important; }
+  .tabs, .user-bar, .toolbar, .add-card, .about-me-card, .topbar .top-actions, .install-btn { display: none !important; }
 }

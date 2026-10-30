@@ -1215,6 +1215,39 @@ if (shareId) openSharedView(shareId);
 updateEntryMode();
 if (!shareId) updatePreview();
 
+/* =====================================================================
+   Install as an app (phone / tablet / computer)
+   ===================================================================== */
+let installPrompt = null;
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();            // keep the event, show our own button instead of the browser's mini-bar
+  installPrompt = e;
+  if (!standalone() && !shareId) $("installBtn").hidden = false;
+});
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  $("installBtn").hidden = true;
+  toast("App installed. Open it from your home screen / app list.", "ok", 5000);
+});
+// iPhone / iPad Safari has no install prompt: show the button with instructions instead.
+if (isIOS() && !standalone() && !shareId) $("installBtn").hidden = false;
+
+$("installBtn").addEventListener("click", async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    try { await installPrompt.userChoice; } catch { /* ignore */ }
+    installPrompt = null;
+    $("installBtn").hidden = true;
+  } else if (isIOS()) {
+    toast("In Safari: tap the Share button, then “Add to Home Screen”.", "", 9000);
+  } else {
+    toast("Use your browser menu → “Install app” / “Add to Home screen”.", "", 7000);
+  }
+});
+
 // Offline support: cache the app files so the page also opens without internet.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Service worker not registered", e));
