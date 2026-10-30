@@ -42,11 +42,54 @@
     <div id="loading" class="loading">Loading…</div>
 
     <!-- Login -->
-    <section id="loginScreen" class="login-screen card" hidden>
-      <p>Sign in to save your results and open them from any device.</p>
-      <button id="loginBtn" class="google-btn" type="button">
-        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="" class="icon"> Sign in with Google
-      </button>
+    <section id="loginScreen" class="login-screen" hidden>
+      <div class="lg-hero">
+        <div class="lg-copy">
+          <span class="lg-eyebrow">📘 Free · Private · Works on every device</span>
+          <h2 class="lg-title">Your results.<br><span>One clear CGPA.</span></h2>
+          <p class="lg-sub">Track every semester, see your CGPA update instantly, and plan the grades you need next. Sign in once and your data follows you from phone to laptop.</p>
+          <button id="loginBtn" class="google-btn lg-btn" type="button">
+            <svg class="icon" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+            Sign in with Google
+          </button>
+          <p class="lg-trust">🔒 Only you can see your results. No ads, no passwords to remember.</p>
+          <div class="lg-chips">
+            <span>🎯 Target CGPA</span><span>🔮 Grade forecast</span><span>📥 One-paste import</span><span>📴 Works offline</span>
+          </div>
+        </div>
+
+        <div class="lg-visual" aria-hidden="true">
+          <div class="lg-mock">
+            <div class="lg-mock-bar"><i></i><i></i><i></i><b>Preview · demo data</b></div>
+            <div class="lg-mock-top">
+              <div class="lg-cgpa"><small>CGPA</small><strong>3.46</strong><em>▲ 0.12 this semester</em></div>
+              <div class="lg-prog"><small>Degree progress</small><strong>86 / 140</strong><div class="lg-bar"><span></span></div><em>61% done</em></div>
+            </div>
+            <svg class="lg-chart" viewBox="0 0 300 110" preserveAspectRatio="none">
+              <g stroke="currentColor" stroke-opacity=".12"><path d="M0 20H300M0 55H300M0 90H300"/></g>
+              <path d="M10 70 L80 52 L150 80 L220 34 L290 28" fill="none" stroke="#2a78d6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 66 L80 60 L150 64 L220 50 L290 44" fill="none" stroke="#eb6834" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <g fill="#2a78d6"><circle cx="10" cy="70" r="4"/><circle cx="80" cy="52" r="4"/><circle cx="150" cy="80" r="4"/><circle cx="220" cy="34" r="4"/><circle cx="290" cy="28" r="4"/></g>
+              <g fill="#eb6834"><circle cx="10" cy="66" r="4"/><circle cx="80" cy="60" r="4"/><circle cx="150" cy="64" r="4"/><circle cx="220" cy="50" r="4"/><circle cx="290" cy="44" r="4"/></g>
+            </svg>
+            <div class="lg-rows">
+              <div><span>Operating Systems</span><b class="g-a">A</b></div>
+              <div><span>Computer Networks</span><b class="g-am">A-</b></div>
+              <div><span>Software Engineering</span><b class="g-bp">B+</b></div>
+            </div>
+          </div>
+          <div class="lg-float lg-f1">🔮 Final needed: <b>≥ 28 / 50</b></div>
+          <div class="lg-float lg-f2">🎯 Need GPA <b>3.60</b> next term</div>
+        </div>
+      </div>
+
+      <div class="lg-feats">
+        <div><span>📚</span><b>Semester-wise results</b><p>Credits, weighted GPA and a running CGPA for every term.</p></div>
+        <div><span>⏳</span><b>Ongoing courses</b><p>Keep running-semester marks as notes until results come out.</p></div>
+        <div><span>📄</span><b>PDF &amp; Excel export</b><p>Download a clean result sheet or share a read-only link.</p></div>
+        <div><span>📲</span><b>Install as an app</b><p>Add it to your home screen on Android, iPhone or desktop.</p></div>
+      </div>
+      <p class="lg-guide">New here? <a href="guide.html">📖 Read the user guide</a> (English &amp; বাংলা)</p>
     </section>
 
     <!-- Shared (read-only) view banner -->

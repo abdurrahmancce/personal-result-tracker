@@ -208,8 +208,6 @@ kbd {
 .share-banner a { color: var(--brand); font-weight: 600; }
 
 /* ---------- Login ---------- */
-.login-screen { text-align: center; padding: 40px 16px; }
-.login-screen p { margin-bottom: 20px; color: var(--muted); }
 
 .google-btn {
   display: inline-flex;
@@ -599,5 +597,69 @@ button.result:hover { background: #1d4ed8; }
 }
 
 /* Link to the user guide in the top bar */
-a.mini.guide-link { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; }
+a.mini.guide-link { white-space: nowrap; flex-direction: row; display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; }
 a.mini.guide-link:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ---------- Login landing ---------- */
+.login-screen { display: block; padding: 8px 0 24px; }
+.login-screen[hidden] { display: none; }
+.lg-hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; padding: 36px 32px; border-radius: 24px; border: 1px solid var(--border); box-shadow: var(--shadow);
+  background: radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 60%), radial-gradient(600px 300px at 0% 100%, color-mix(in srgb, var(--series-1) 14%, transparent), transparent 60%), var(--card); overflow: hidden; }
+.lg-eyebrow { display: inline-block; padding: 6px 14px; border-radius: 999px; background: var(--accent-soft); color: var(--brand); font-weight: 700; font-size: 0.85rem; border: 1px solid var(--border); }
+.lg-title { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.08; margin: 16px 0 12px; letter-spacing: -0.02em; font-weight: 800; }
+.lg-title span { color: var(--brand); }
+.lg-sub { color: var(--muted); font-size: 1.05rem; max-width: 520px; margin-bottom: 22px; line-height: 1.55; }
+.google-btn.lg-btn { padding: 14px 26px; font-size: 1.08rem; font-weight: 700; border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); border-color: transparent; }
+.google-btn.lg-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25); }
+.google-btn.lg-btn .icon { width: 24px; height: 24px; }
+.lg-trust { margin: 14px 0 18px; color: var(--muted); font-size: 0.92rem; }
+.lg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lg-chips span { padding: 6px 12px; border-radius: 999px; background: var(--card-2); border: 1px solid var(--border); font-size: 0.88rem; font-weight: 600; }
+
+.lg-visual { position: relative; padding: 18px 22px 30px 8px; }
+.lg-mock { background: var(--card); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28); overflow: hidden; transform: rotate(-1.5deg); }
+.lg-mock-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--card-2); border-bottom: 1px solid var(--border); }
+.lg-mock-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.lg-mock-bar b { margin-left: 8px; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.lg-mock-top { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; padding: 14px; }
+.lg-cgpa, .lg-prog { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.lg-cgpa { background: color-mix(in srgb, #fbbf24 14%, var(--card-2)); }
+.lg-cgpa small, .lg-prog small { color: var(--muted); font-size: 0.78rem; }
+.lg-cgpa strong { font-size: 2.3rem; line-height: 1.05; color: #d99a06; font-weight: 800; }
+.lg-prog strong { font-size: 1.35rem; margin-top: 4px; }
+.lg-cgpa em, .lg-prog em { font-style: normal; font-size: 0.78rem; color: var(--muted); }
+.lg-cgpa em { color: #2e9d5b; font-weight: 700; }
+.lg-bar { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 6px 0 2px; }
+.lg-bar span { display: block; width: 61%; height: 100%; background: linear-gradient(90deg, var(--brand), #2dd4bf); border-radius: 999px; }
+.lg-chart { display: block; width: calc(100% - 28px); height: 100px; margin: 0 14px; color: var(--text); }
+.lg-rows { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.lg-rows > div { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--border); font-size: 0.88rem; }
+.lg-rows b { min-width: 34px; text-align: center; padding: 2px 8px; border-radius: 8px; color: #fff; font-size: 0.82rem; }
+.lg-rows .g-a { background: #1f8f55; } .lg-rows .g-am { background: #2e9d5b; } .lg-rows .g-bp { background: #b7861a; }
+.lg-float { position: absolute; padding: 8px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28); font-size: 0.85rem; white-space: nowrap; }
+.lg-float b { color: var(--brand); }
+.lg-f1 { right: 0; top: 40%; }
+.lg-f2 { left: -6px; bottom: 6px; }
+
+.lg-feats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+.lg-feats > div { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); }
+.lg-feats span { font-size: 1.6rem; }
+.lg-feats b { display: block; margin: 6px 0 4px; }
+.lg-feats p { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+.lg-guide { text-align: center; margin-top: 16px; color: var(--muted); }
+.lg-guide a { color: var(--brand); font-weight: 700; text-decoration: none; }
+
+@media (max-width: 860px) {
+  .lg-hero { grid-template-columns: 1fr; padding: 26px 18px; gap: 26px; }
+  .lg-feats { grid-template-columns: repeat(2, 1fr); }
+  .lg-visual { padding: 0 6px 30px 0; }
+  .lg-f1 { right: 0; top: 36%; }
+}
+@media (max-width: 480px) {
+  .lg-feats { grid-template-columns: 1fr; }
+  .lg-float { font-size: 0.78rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lg-mock { animation: lgfloat 6s ease-in-out infinite; }
+  @keyframes lgfloat { 0%, 100% { transform: rotate(-1.5deg) translateY(0); } 50% { transform: rotate(-1.5deg) translateY(-8px); } }
+}
