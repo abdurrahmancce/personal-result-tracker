@@ -4,7 +4,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore,
-  collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, getDocs, writeBatch,
+  collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, getDocs, writeBatch, terminate, clearIndexedDbPersistence,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 import * as C from "./calc.js";
@@ -31,17 +31,73 @@ const provider = new GoogleAuthProvider();
 const RULES_TEXT = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Everything inside a user's own folder is private to that user
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function optNum(d, k, lo, hi) { return !(k in d) || d[k] == null || (d[k] is number && d[k] >= lo && d[k] <= hi); }
+    function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
+
+    function validProfile(d) {
+      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks'])
+        && optStr(d, 'name', 80)
+        && optStr(d, 'shareId', 64)
+        && optNum(d, 'createdAt', 0, 9007199254740991)
+        && optNum(d, 'requiredCredits', 0, 1000)
+        && (!('shareHideMarks' in d) || d.shareHideMarks == null || d.shareHideMarks is bool);
     }
-    // Read-only share links: anyone with the link can read ONE document, nobody can list them
+
+    function validCourse(d) {
+      return d.keys().hasOnly(['semester', 'courseCode', 'courseTitle', 'credit', 'mid', 'ct', 'attendance',
+                               'final', 'total', 'grade', 'gpa', 'ongoing', 'comment', 'createdAt'])
+        && d.semester is string && d.semester.size() <= 40
+        && d.courseCode is string && d.courseCode.size() <= 24
+        && d.credit is number && d.credit > 0 && d.credit <= 30
+        && optStr(d, 'courseTitle', 160)
+        && optStr(d, 'comment', 300)
+        && optNum(d, 'mid', 0, 30)
+        && optNum(d, 'ct', 0, 10)
+        && optNum(d, 'attendance', 0, 10)
+        && optNum(d, 'final', 0, 50)
+        && optNum(d, 'total', 0, 100)
+        && optNum(d, 'gpa', 0, 4)
+        && optNum(d, 'createdAt', 0, 9007199254740991)
+        && (!('grade' in d) || d.grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F', 'Y', ''])
+        && (!('ongoing' in d) || d.ongoing is bool);
+    }
+
+    function validShare(d) {
+      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'courses'])
+        && d.ownerUid is string
+        && optStr(d, 'profileName', 80)
+        && optNum(d, 'requiredCredits', 0, 1000)
+        && optNum(d, 'updatedAt', 0, 9007199254740991)
+        && (!('hideMarks' in d) || d.hideMarks is bool)
+        && d.courses is list && d.courses.size() <= 400;
+    }
+
+    // Profiles: private to the signed-in owner, and the data must have the expected shape
+    match /users/{userId}/profiles/{profileId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validProfile(request.resource.data);
+
+      match /courses/{courseId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validCourse(request.resource.data);
+      }
+    }
+
+    // Results saved by the very first version of the app: can only be read and removed (migration)
+    match /users/{userId}/results/{resultId} {
+      allow read, delete: if isOwner(userId);
+    }
+
+    // Read-only share links: anyone with the (long, random) link can read ONE document. Nobody can list them.
     match /shares/{shareId} {
       allow get: if true;
       allow list: if false;
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && shareId.size() >= 16
+                    && request.resource.data.ownerUid == request.auth.uid && validShare(request.resource.data);
       allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid
-                    && request.resource.data.ownerUid == resource.data.ownerUid;
+                    && request.resource.data.ownerUid == resource.data.ownerUid && validShare(request.resource.data);
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
   }
@@ -62,7 +118,20 @@ const hasPartial = (r) => [r.mid, r.ct, r.attendance].some((v) => v !== undefine
 const hasAnyMarks = (r) => hasMarks(r) || (!!r.ongoing && hasPartial(r));
 const markCell = (v) => (v === undefined || v === null || v === "" ? "–" : num(v));
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-const gradeClass = (g) => "grade-" + String(g).replace("+", "plus").replace("-", "minus");
+// Only known grades may reach a class attribute (shared data comes from another person's account).
+const gradeClass = (g) => (C.GRADE_OPTIONS.includes(g) ? "grade-" + String(g).replace("+", "plus").replace("-", "minus") : "grade-none");
+// Never trust data from a share link: rebuild every course from known fields, with safe types and sizes.
+const safeStr = (v, n) => String(v ?? "").slice(0, n);
+const safeNum = (v, lo, hi) => { const n = Number(v); return v === null || v === undefined || v === "" || !Number.isFinite(n) ? null : Math.min(hi, Math.max(lo, n)); };
+function sanitizeSharedCourse(c, i) {
+  const grade = C.GRADE_OPTIONS.includes(c && c.grade) ? c.grade : "F";
+  return {
+    id: "s" + i, semester: safeStr(c?.semester, 40), courseCode: safeStr(c?.courseCode, 24), courseTitle: safeStr(c?.courseTitle, 160),
+    comment: safeStr(c?.comment, 300), credit: safeNum(c?.credit, 0.5, 30) ?? C.DEFAULT_CREDIT, grade, gpa: C.gradeToGpa(grade) ?? 0, ongoing: false,
+    mid: safeNum(c?.mid, 0, 30), ct: safeNum(c?.ct, 0, 10), attendance: safeNum(c?.attendance, 0, 10), final: safeNum(c?.final, 0, 50), total: safeNum(c?.total, 0, 100),
+    createdAt: safeNum(c?.createdAt, 0, 9007199254740991) ?? 0,
+  };
+}
 const withTimeout = (p, ms, msg) =>
   Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg || "Timed out")), ms))]);
 const randomId = () => {
@@ -201,7 +270,13 @@ $("loginBtn").addEventListener("click", async () => {
     }
   }
 });
-$("logoutBtn").addEventListener("click", () => signOut(auth));
+$("logoutBtn").addEventListener("click", async () => {
+  if (!navigator.onLine && !confirm("You are offline. Changes that are not synced yet will be lost if you log out now. Log out anyway?")) return;
+  try { await signOut(auth); } catch { /* ignore */ }
+  // Remove the offline copy of the results from this browser, so the next person on a shared computer cannot see it.
+  try { await terminate(db); await clearIndexedDbPersistence(db); } catch { /* cache already gone */ }
+  location.reload();
+});
 
 function stopListeners() {
   if (unsubProfiles) { unsubProfiles(); unsubProfiles = null; }
@@ -315,7 +390,7 @@ function renderProfileSelect() {
 $("profileSelect").addEventListener("change", (e) => selectProfile(e.target.value));
 
 $("profileAdd").addEventListener("click", () => {
-  const name = (prompt("Name for the new profile (for example: Younger brother)") || "").trim();
+  const name = (prompt("Name for the new profile (for example: Younger brother)") || "").trim().slice(0, 80);
   if (!name) return;
   const ref = doc(profilesCol());
   setDoc(ref, { name, createdAt: Date.now(), requiredCredits: C.DEFAULT_REQUIRED_CREDITS }).catch((e) => handleError(e, "Could not create profile"));
@@ -325,7 +400,7 @@ $("profileAdd").addEventListener("click", () => {
 $("profileRename").addEventListener("click", () => {
   const p = currentProfile();
   if (!p) return;
-  const name = (prompt("New name for this profile", p.name || "") || "").trim();
+  const name = (prompt("New name for this profile", p.name || "") || "").trim().slice(0, 80);
   if (!name || name === p.name) return;
   setDoc(doc(profilesCol(), p.id), { name }, { merge: true }).catch((e) => handleError(e, "Rename failed"));
 });
@@ -618,7 +693,7 @@ const semKey = (n) => String(n || "").trim().toLowerCase().replace(/\s+/g, " ") 
 const coursesInSemester = (name) => state.courses.filter((c) => semKey(c.semester) === semKey(name));
 
 function renameSemester(name) {
-  const next = (prompt(`Rename semester "${name}" to:`, name) || "").trim();
+  const next = (prompt(`Rename semester "${name}" to:`, name) || "").trim().slice(0, 40);
   if (!next || next === name) return;
   const list = coursesInSemester(name);
   commitInChunks(list.map((c) => (b) => b.set(doc(coursesCol(state.profileId), c.id), { semester: next }, { merge: true })))
@@ -723,12 +798,12 @@ function resetForm() {
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   if (state.readOnly || !state.profileId) return;
-  const semester = $("semester").value.trim();
+  const semester = $("semester").value.trim().slice(0, 40);
   if (!semester) { toast("Please write the semester (for example Autumn-2026)", "error"); return; }
   const data = {
     semester,
-    courseCode: $("courseCode").value.trim().toUpperCase(),
-    courseTitle: $("courseTitle").value.trim(),
+    courseCode: $("courseCode").value.trim().toUpperCase().slice(0, 24),
+    courseTitle: $("courseTitle").value.trim().slice(0, 160),
     credit: Number($("credit").value) || C.DEFAULT_CREDIT,
     ...formResult(),
   };
@@ -1012,7 +1087,9 @@ $("importClear").addEventListener("click", () => {
   state.parsedImport = null;
 });
 
+const IMPORT_MAX_CHARS = 300000;
 $("importParse").addEventListener("click", () => {
+  if ($("importText").value.length > IMPORT_MAX_CHARS) { toast("That text is too long to be a result page. Copy only the Result View or Course Status page.", "error", 6000); return; }
   const parsed = parseResultText($("importText").value);
   state.parsedImport = parsed;
   const host = $("importPreview");
@@ -1070,9 +1147,9 @@ async function doImport() {
     have.add(key);
     const ref = doc(coursesCol(state.profileId));
     const data = {
-      semester, courseCode: c.courseCode, courseTitle: c.courseTitle, credit: c.credit,
+      semester: String(semester).slice(0, 40), courseCode: String(c.courseCode).slice(0, 24), courseTitle: String(c.courseTitle).slice(0, 160), credit: c.credit,
       mid: null, ct: null, attendance: null, final: null, total: null,
-      grade: "", gpa: 0, ongoing: false, comment: c.comment || "", createdAt: base + added,
+      grade: "", gpa: 0, ongoing: false, comment: String(c.comment || "").slice(0, 300), createdAt: base + added,
       ...extra,
     };
     ops.push((b) => b.set(ref, data));
@@ -1194,11 +1271,11 @@ async function openSharedView(id) {
     if (!snap.exists()) throw new Error("not-found");
     const d = snap.data();
     state.share = d;
-    state.courses = (d.courses || []).map((c, i) => ({ id: "s" + i, ...c }));
+    state.courses = (Array.isArray(d.courses) ? d.courses.slice(0, 400) : []).map(sanitizeSharedCourse);
     $("shareBanner").hidden = false;
-    $("shareBanner").innerHTML = `<span>👀 Read-only result of <b>${esc(d.profileName || "someone")}</b> · updated ${esc(new Date(d.updatedAt || Date.now()).toLocaleDateString("en-GB"))}</span>
+    $("shareBanner").innerHTML = `<span>👀 Read-only result of <b>${esc(safeStr(d.profileName, 80) || "someone")}</b> · updated ${esc(new Date(d.updatedAt || Date.now()).toLocaleDateString("en-GB"))}</span>
       <a href="${esc(location.pathname)}">Open my own tracker →</a>`;
-    document.title = `${d.profileName || "Result"} · Personal Result Tracker`;
+    document.title = `${safeStr(d.profileName, 80) || "Result"} · Personal Result Tracker`;
     showScreen("app");
     renderAll();
   } catch (e) {

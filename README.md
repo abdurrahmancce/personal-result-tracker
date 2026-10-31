@@ -227,7 +227,11 @@ shares/{share-id}                             ← read-only snapshot (only if yo
 
 ---
 
-## 🔐 Privacy
+## 🔐 Security & privacy
+
+See [**SECURITY.md**](SECURITY.md) for how data is protected (private per-user rules with data validation, safe share links, CSP, log-out cache clearing) and the checklist for your own Firebase project.
+
+### Privacy
 
 - Your results live in **your own** Firebase account area and can only be read by you.
 - A **share link** is a snapshot that anyone with the link can open. Turn it off with **Stop sharing**.

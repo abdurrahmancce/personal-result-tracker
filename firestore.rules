@@ -1,17 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Everything inside a user's own folder is private to that user
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function optNum(d, k, lo, hi) { return !(k in d) || d[k] == null || (d[k] is number && d[k] >= lo && d[k] <= hi); }
+    function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
+
+    function validProfile(d) {
+      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks'])
+        && optStr(d, 'name', 80)
+        && optStr(d, 'shareId', 64)
+        && optNum(d, 'createdAt', 0, 9007199254740991)
+        && optNum(d, 'requiredCredits', 0, 1000)
+        && (!('shareHideMarks' in d) || d.shareHideMarks == null || d.shareHideMarks is bool);
     }
-    // Read-only share links: anyone with the link can read ONE document, nobody can list them
+
+    function validCourse(d) {
+      return d.keys().hasOnly(['semester', 'courseCode', 'courseTitle', 'credit', 'mid', 'ct', 'attendance',
+                               'final', 'total', 'grade', 'gpa', 'ongoing', 'comment', 'createdAt'])
+        && d.semester is string && d.semester.size() <= 40
+        && d.courseCode is string && d.courseCode.size() <= 24
+        && d.credit is number && d.credit > 0 && d.credit <= 30
+        && optStr(d, 'courseTitle', 160)
+        && optStr(d, 'comment', 300)
+        && optNum(d, 'mid', 0, 30)
+        && optNum(d, 'ct', 0, 10)
+        && optNum(d, 'attendance', 0, 10)
+        && optNum(d, 'final', 0, 50)
+        && optNum(d, 'total', 0, 100)
+        && optNum(d, 'gpa', 0, 4)
+        && optNum(d, 'createdAt', 0, 9007199254740991)
+        && (!('grade' in d) || d.grade in ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F', 'Y', ''])
+        && (!('ongoing' in d) || d.ongoing is bool);
+    }
+
+    function validShare(d) {
+      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'courses'])
+        && d.ownerUid is string
+        && optStr(d, 'profileName', 80)
+        && optNum(d, 'requiredCredits', 0, 1000)
+        && optNum(d, 'updatedAt', 0, 9007199254740991)
+        && (!('hideMarks' in d) || d.hideMarks is bool)
+        && d.courses is list && d.courses.size() <= 400;
+    }
+
+    // Profiles: private to the signed-in owner, and the data must have the expected shape
+    match /users/{userId}/profiles/{profileId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validProfile(request.resource.data);
+
+      match /courses/{courseId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validCourse(request.resource.data);
+      }
+    }
+
+    // Results saved by the very first version of the app: can only be read and removed (migration)
+    match /users/{userId}/results/{resultId} {
+      allow read, delete: if isOwner(userId);
+    }
+
+    // Read-only share links: anyone with the (long, random) link can read ONE document. Nobody can list them.
     match /shares/{shareId} {
       allow get: if true;
       allow list: if false;
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && shareId.size() >= 16
+                    && request.resource.data.ownerUid == request.auth.uid && validShare(request.resource.data);
       allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid
-                    && request.resource.data.ownerUid == resource.data.ownerUid;
+                    && request.resource.data.ownerUid == resource.data.ownerUid && validShare(request.resource.data);
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
   }

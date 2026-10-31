@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9bqHJQVPVRffMjb9uvbFcEUzBNn8QQ0w9ajgb45C8GE=' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://cdnjs.cloudflare.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://*.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal Result Tracker</title>
   <meta name="theme-color" content="#0f766e">
@@ -14,6 +16,8 @@
   <meta name="apple-mobile-web-app-title" content="Results">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script>
+    // Do not run inside someone else's page (clickjacking protection; GitHub Pages cannot send frame headers).
+    if (window.top !== window.self) { document.documentElement.style.display = "none"; }
     // Apply the saved (or system) theme before first paint so there is no flash.
     (function () {
       try {
@@ -122,14 +126,14 @@
           <summary id="formTitle">➕ Add a course</summary>
           <form id="resultForm" class="course-form" autocomplete="off">
             <label class="f f-sem">Semester
-              <input id="semester" list="semesterList" required placeholder="e.g. Autumn-2026">
+              <input id="semester" list="semesterList" required maxlength="40" placeholder="e.g. Autumn-2026">
               <datalist id="semesterList"></datalist>
             </label>
             <label class="f">Course code
-              <input type="text" id="courseCode" required placeholder="CCE-3601">
+              <input type="text" id="courseCode" required maxlength="24" placeholder="CCE-3601">
             </label>
             <label class="f f-wide">Course title
-              <input type="text" id="courseTitle" placeholder="Course title">
+              <input type="text" id="courseTitle" maxlength="160" placeholder="Course title">
             </label>
             <label class="f f-credit">Credit
               <input type="number" id="credit" min="0.5" max="12" step="0.5" value="3" required>
