@@ -37,11 +37,12 @@ service cloud.firestore {
     function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
 
     function validProfile(d) {
-      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks'])
+      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks', 'shareExpiresAt'])
         && optStr(d, 'name', 80)
         && optStr(d, 'shareId', 64)
         && optNum(d, 'createdAt', 0, 9007199254740991)
         && optNum(d, 'requiredCredits', 0, 1000)
+        && optNum(d, 'shareExpiresAt', 0, 9007199254740991)
         && (!('shareHideMarks' in d) || d.shareHideMarks == null || d.shareHideMarks is bool);
     }
 
@@ -65,11 +66,12 @@ service cloud.firestore {
     }
 
     function validShare(d) {
-      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'courses'])
+      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'expiresAt', 'courses'])
         && d.ownerUid is string
         && optStr(d, 'profileName', 80)
         && optNum(d, 'requiredCredits', 0, 1000)
         && optNum(d, 'updatedAt', 0, 9007199254740991)
+        && optNum(d, 'expiresAt', 0, 9007199254740991)
         && (!('hideMarks' in d) || d.hideMarks is bool)
         && d.courses is list && d.courses.size() <= 400;
     }
@@ -92,7 +94,9 @@ service cloud.firestore {
 
     // Read-only share links: anyone with the (long, random) link can read ONE document. Nobody can list them.
     match /shares/{shareId} {
-      allow get: if true;
+      // an expired link cannot be read any more, even by someone who still has it
+      allow get: if !('expiresAt' in resource.data) || resource.data.expiresAt == null
+                 || resource.data.expiresAt > request.time.toMillis();
       allow list: if false;
       allow create: if request.auth != null && shareId.size() >= 16
                     && request.resource.data.ownerUid == request.auth.uid && validShare(request.resource.data);
@@ -1204,31 +1208,36 @@ function renderShareState() {
     box.innerHTML = "";
     $("shareCreate").textContent = "Create link";
     $("shareStop").hidden = true;
+    $("shareRotate").hidden = true;
     return;
   }
   const url = shareUrl(p.shareId);
   box.innerHTML = `<div class="share-link"><input id="shareUrl" readonly value="${esc(url)}" aria-label="Share link"><button type="button" class="mini" id="shareCopy">Copy</button></div>
-    <p class="hint">Anyone with this link can see ${p.shareHideMarks ? "the grades" : "the marks and grades"} as they were when you last pressed “Update link”. Ongoing courses are never shared.</p>`;
+    <p class="hint">Anyone with this link can see ${p.shareHideMarks ? "the grades" : "the marks and grades"} as they were when you last pressed “Update link”. Ongoing courses are never shared.${p.shareExpiresAt ? ` <b>${p.shareExpiresAt < Date.now() ? "This link has expired." : "Expires " + esc(new Date(p.shareExpiresAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })) + "."}</b>` : " This link does not expire."}</p>`;
   $("shareCopy").onclick = async () => {
     try { await navigator.clipboard.writeText(url); toast("Link copied", "ok", 2000); }
     catch { $("shareUrl").select(); toast("Press Ctrl+C to copy", "", 3000); }
   };
   $("shareCreate").textContent = "Update link";
   $("shareStop").hidden = false;
+  $("shareRotate").hidden = false;
 }
 
-$("shareCreate").addEventListener("click", async () => {
+async function publishShare(rotate) {
   const p = currentProfile();
   if (!p) return;
   if (!navigator.onLine) { toast("Sharing needs internet.", "error"); return; }
   const hide = $("shareHideMarks").checked;
-  const id = p.shareId || randomId();
+  const id = rotate || !p.shareId ? randomId() : p.shareId;
+  const days = Number($("shareExpiry").value) || 0;
+  const expiresAt = days ? Date.now() + days * 86400000 : null;
   const payload = {
     ownerUid: state.user.uid,
     profileName: p.name || "",
     requiredCredits: requiredCredits(),
     hideMarks: hide,
     updatedAt: Date.now(),
+    expiresAt,
     courses: state.courses.filter((c) => !c.ongoing).map((c) => ({
       semester: c.semester || "", courseCode: c.courseCode || "", courseTitle: c.courseTitle || "",
       credit: C.creditOf(c), grade: c.grade, gpa: Number(c.gpa) || 0, comment: c.comment || "",
@@ -1240,13 +1249,18 @@ $("shareCreate").addEventListener("click", async () => {
   btn.disabled = true;
   try {
     await withTimeout(setDoc(doc(db, "shares", id), payload), 12000, "No connection");
-    await setDoc(doc(profilesCol(), p.id), { shareId: id, shareHideMarks: hide }, { merge: true });
-    toast("Share link is ready", "ok");
+    await setDoc(doc(profilesCol(), p.id), { shareId: id, shareHideMarks: hide, shareExpiresAt: expiresAt }, { merge: true });
+    if (rotate && p.shareId && p.shareId !== id) await deleteDoc(doc(db, "shares", p.shareId)).catch(() => {});
+    toast(rotate ? "New link created. The old link no longer works." : "Share link is ready", "ok");
   } catch (e) {
     handleError(e, "Could not create link");
   } finally {
     btn.disabled = false;
   }
+}
+$("shareCreate").addEventListener("click", () => publishShare(false));
+$("shareRotate").addEventListener("click", () => {
+  if (confirm("Create a new link? The old link will stop working.")) publishShare(true);
 });
 
 $("shareStop").addEventListener("click", async () => {
@@ -1254,10 +1268,44 @@ $("shareStop").addEventListener("click", async () => {
   if (!p?.shareId || !confirm("Stop sharing? The old link will stop working.")) return;
   try {
     await withTimeout(deleteDoc(doc(db, "shares", p.shareId)), 12000, "No connection");
-    await setDoc(doc(profilesCol(), p.id), { shareId: null }, { merge: true });
+    await setDoc(doc(profilesCol(), p.id), { shareId: null, shareExpiresAt: null }, { merge: true });
     toast("Sharing stopped", "ok");
   } catch (e) {
     handleError(e, "Could not stop sharing");
+  }
+});
+
+/* ---- delete everything ---- */
+$("deleteAllBtn").addEventListener("click", async () => {
+  if (!state.user || state.readOnly) return;
+  if (!navigator.onLine) { toast("Deleting your data needs internet.", "error"); return; }
+  const typed = prompt("This permanently deletes ALL your profiles, courses and share links from the cloud. It cannot be undone.\n\nType DELETE to confirm.");
+  if (typed !== "DELETE") { if (typed !== null) toast("Nothing was deleted.", "", 3000); return; }
+  const btn = $("deleteAllBtn");
+  btn.disabled = true;
+  stopListeners(); // otherwise the app would notice "no profile" and create a new empty one while we delete
+  try {
+    const profs = await withTimeout(getDocs(profilesCol()), 15000, "No connection");
+    for (const pd of profs.docs) {
+      const courses = await withTimeout(getDocs(coursesCol(pd.id)), 15000, "No connection");
+      for (let i = 0; i < courses.docs.length; i += 400) {
+        const batch = writeBatch(db);
+        courses.docs.slice(i, i + 400).forEach((c) => batch.delete(c.ref));
+        await withTimeout(batch.commit(), 20000, "No connection");
+      }
+      const sid = pd.data().shareId;
+      if (sid) await deleteDoc(doc(db, "shares", sid)).catch(() => {});
+      await deleteDoc(pd.ref);
+    }
+    const legacy = await getDocs(collection(db, "users", state.user.uid, "results")).catch(() => null);
+    if (legacy) for (const d of legacy.docs) await deleteDoc(d.ref).catch(() => {});
+    toast("All your data was deleted. Logging out…", "ok", 3000);
+    setTimeout(() => $("logoutBtn").click(), 1200);
+  } catch (e) {
+    handleError(e, "Could not delete everything. Some data may remain, please try again");
+    setTimeout(() => location.reload(), 3500);
+  } finally {
+    btn.disabled = false;
   }
 });
 
@@ -1270,6 +1318,7 @@ async function openSharedView(id) {
     const snap = await withTimeout(getDoc(doc(db, "shares", id)), 12000, "No connection");
     if (!snap.exists()) throw new Error("not-found");
     const d = snap.data();
+    if (d.expiresAt && Number(d.expiresAt) < Date.now()) throw new Error("expired");
     state.share = d;
     state.courses = (Array.isArray(d.courses) ? d.courses.slice(0, 400) : []).map(sanitizeSharedCourse);
     $("shareBanner").hidden = false;
@@ -1281,7 +1330,7 @@ async function openSharedView(id) {
   } catch (e) {
     $("loading").hidden = true;
     $("notice").hidden = false;
-    $("notice").innerHTML = `This link is not valid, or the owner stopped sharing. <a href="${esc(location.pathname)}">Open the tracker</a>`;
+    $("notice").innerHTML = `This link is not valid, has expired, or the owner stopped sharing. <a href="${esc(location.pathname)}">Open the tracker</a>`;
   }
 }
 if (shareId) openSharedView(shareId);

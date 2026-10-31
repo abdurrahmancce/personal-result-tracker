@@ -7,11 +7,12 @@ service cloud.firestore {
     function optStr(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
 
     function validProfile(d) {
-      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks'])
+      return d.keys().hasOnly(['name', 'createdAt', 'requiredCredits', 'shareId', 'shareHideMarks', 'shareExpiresAt'])
         && optStr(d, 'name', 80)
         && optStr(d, 'shareId', 64)
         && optNum(d, 'createdAt', 0, 9007199254740991)
         && optNum(d, 'requiredCredits', 0, 1000)
+        && optNum(d, 'shareExpiresAt', 0, 9007199254740991)
         && (!('shareHideMarks' in d) || d.shareHideMarks == null || d.shareHideMarks is bool);
     }
 
@@ -35,11 +36,12 @@ service cloud.firestore {
     }
 
     function validShare(d) {
-      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'courses'])
+      return d.keys().hasOnly(['ownerUid', 'profileName', 'requiredCredits', 'hideMarks', 'updatedAt', 'expiresAt', 'courses'])
         && d.ownerUid is string
         && optStr(d, 'profileName', 80)
         && optNum(d, 'requiredCredits', 0, 1000)
         && optNum(d, 'updatedAt', 0, 9007199254740991)
+        && optNum(d, 'expiresAt', 0, 9007199254740991)
         && (!('hideMarks' in d) || d.hideMarks is bool)
         && d.courses is list && d.courses.size() <= 400;
     }
@@ -62,7 +64,9 @@ service cloud.firestore {
 
     // Read-only share links: anyone with the (long, random) link can read ONE document. Nobody can list them.
     match /shares/{shareId} {
-      allow get: if true;
+      // an expired link cannot be read any more, even by someone who still has it
+      allow get: if !('expiresAt' in resource.data) || resource.data.expiresAt == null
+                 || resource.data.expiresAt > request.time.toMillis();
       allow list: if false;
       allow create: if request.auth != null && shareId.size() >= 16
                     && request.resource.data.ownerUid == request.auth.uid && validShare(request.resource.data);

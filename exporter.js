@@ -1,8 +1,10 @@
 // exporter.js — CSV (opens in Excel) and PDF downloads. No Firebase, only needs the computed stats.
 import { cgpaOf } from "./calc.js";
 
-const JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-const AUTOTABLE_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+// PDF libraries: a copy hosted in this repository (vendor/) is used first, because it cannot change behind our back.
+// If the copy is not there, the same versions are loaded from cdnjs.
+const JSPDF_URLS = ["vendor/jspdf.umd.min.js", "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"];
+const AUTOTABLE_URLS = ["vendor/jspdf.plugin.autotable.min.js", "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"];
 
 const f3 = (n) => (Math.round(n * 1000) / 1000).toFixed(3);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -66,18 +68,26 @@ function loadScript(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = src;
+    if (/^https?:/.test(src)) { s.crossOrigin = "anonymous"; s.referrerPolicy = "no-referrer"; }
     s.onload = resolve;
-    s.onerror = () => reject(new Error("Could not load " + src));
+    s.onerror = () => { s.remove(); reject(new Error("Could not load " + src)); };
     document.head.appendChild(s);
   });
+}
+async function loadFirst(urls, ready) {
+  let last;
+  for (const u of urls) {
+    try { await loadScript(u); if (ready()) return; } catch (err) { last = err; }
+  }
+  throw last || new Error("Could not load the PDF library");
 }
 
 // jsPDF's built-in fonts only know Latin text; anything else becomes "?".
 const pdfText = (s) => String(s ?? "").replace(/[^\x20-\x7E -ÿ‘’“”–—]/g, "?");
 
 export async function makePDF({ profileName, stats, mode }) {
-  if (!window.jspdf) await loadScript(JSPDF_URL);
-  if (!window.jspdf.jsPDF.API.autoTable) await loadScript(AUTOTABLE_URL);
+  if (!window.jspdf) await loadFirst(JSPDF_URLS, () => !!window.jspdf);
+  if (!window.jspdf.jsPDF.API.autoTable) await loadFirst(AUTOTABLE_URLS, () => !!window.jspdf.jsPDF.API.autoTable);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
