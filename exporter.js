@@ -1,10 +1,9 @@
 // exporter.js — CSV (opens in Excel) and PDF downloads. No Firebase, only needs the computed stats.
 import { cgpaOf } from "./calc.js";
 
-// PDF libraries: a copy hosted in this repository (vendor/) is used first, because it cannot change behind our back.
-// If the copy is not there, the same versions are loaded from cdnjs.
-const JSPDF_URLS = ["vendor/jspdf.umd.min.js", "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"];
-const AUTOTABLE_URLS = ["vendor/jspdf.plugin.autotable.min.js", "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"];
+// PDF libraries (jsPDF 2.5.1 and AutoTable 3.8.2) are hosted in this repository (vendor/), so no outside server is used.
+const JSPDF_URLS = ["vendor/jspdf.umd.min.js"];
+const AUTOTABLE_URLS = ["vendor/jspdf.plugin.autotable.min.js"];
 
 const f3 = (n) => (Math.round(n * 1000) / 1000).toFixed(3);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);

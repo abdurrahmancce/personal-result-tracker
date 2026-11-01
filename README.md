@@ -262,3 +262,11 @@ Ideas and fixes are welcome! Open an [issue](https://github.com/abdurrahmancce/p
 [![Email](https://img.shields.io/badge/Email-Contact-EA4335?logo=gmail&logoColor=white)](mailto:akash.abdur.2002@gmail.com)
 
 ⭐ If this helped you, give the repo a star!
+# vendor/
+
+PDF libraries used for the **Download PDF** button, hosted here so the app does not depend on an outside server:
+
+- `jspdf.umd.min.js` (jsPDF 2.5.1)
+- `jspdf.plugin.autotable.min.js` (jsPDF-AutoTable 3.8.2)
+
+To update them, download newer versions into this folder under the same names.

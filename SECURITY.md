@@ -11,7 +11,7 @@ This page explains how Personal Result Tracker protects your data, and what you 
 | **Share links** | Each link uses a random 20-character id (not guessable). Links can be read one by one but **never listed**. Only the owner can create, update or delete a share. Ongoing courses are never shared. |
 | **Expiring links** | When you create a share link you choose how long it lives (default 7 days). The database refuses to serve an expired link. **New link** replaces the id and deletes the old one. |
 | **Delete everything** | **Privacy & data → Delete all my data** removes every profile, course and share link from the cloud (you must type DELETE). |
-| **PDF libraries** | Loaded from a copy in `vendor/` when you add it (see `vendor/README.md`), so no outside server is needed. Falls back to cdnjs otherwise. |
+| **PDF libraries** | Hosted in this repository (`vendor/`), so PDF export needs no outside server. The Content-Security-Policy no longer allows cdnjs. |
 | **Shared data is untrusted** | A share is built from another person's account, so the app rebuilds every course from known fields, limits text length, and never puts shared text into HTML or attributes unescaped. Grade points always come from the grade, not from the shared numbers. |
 | **XSS protection** | All user text is escaped before display. A **Content-Security-Policy** limits scripts to this site, Firebase/Google and the PDF library host. Inline event handlers and `eval` are not used. |
 | **Clickjacking** | The page hides itself if another website embeds it in a frame. |
@@ -29,7 +29,6 @@ This page explains how Personal Result Tracker protects your data, and what you 
 5. **Budget alert:** Google Cloud → Billing → Budgets, set a small alert so unusual usage is noticed.
 6. *(Optional)* turn on **Firebase App Check** with reCAPTCHA to block traffic that does not come from your site.
 7. **Protect your GitHub account and repo:** turn on two-factor authentication, and enable branch protection on `main` (Settings → Branches), so nobody can change the app code without you.
-8. *(Recommended)* download the PDF libraries into `vendor/` (see `vendor/README.md`), then you can remove `https://cdnjs.cloudflare.com` from the Content-Security-Policy.
 
 > ℹ️ `firebase-config.js` contains public identifiers, not passwords. It is safe to keep in a public repository. Never put a service-account key or any private key in this repo.
 
@@ -42,7 +41,6 @@ This page explains how Personal Result Tracker protects your data, and what you 
 ## Known limits
 
 - The Content-Security-Policy is set with a `<meta>` tag because GitHub Pages cannot send custom HTTP headers. Real headers (for example from Firebase Hosting or Cloudflare) would be stronger, including `frame-ancestors`.
-- Until you add the files in `vendor/`, the PDF library is loaded from cdnjs without a Subresource Integrity hash.
 - Anyone with a share link can read it. This is by design.
 
 ## Reporting a problem
